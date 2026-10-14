@@ -1,53 +1,51 @@
-# 《算了 · Suanle》产品研发总控工作区
+# 《算了 · Suanle》AI 命理与情绪重塑产品研发总控工作区
 
-> **品牌定位**：面向当代年轻人的全新一代 AI 命运观察与情绪松弛产品。  
-> **核心 Slogan**：**算一算，然后，算了。**  
-> **官方代码仓库**：[https://github.com/Evan-Joseph/suanle.git](https://github.com/Evan-Joseph/suanle.git)  
-> **官方 Logo 资产**：[`assets/logo.jpg`](file:///Users/joseph/Desktop/【项目开发】AI算命/assets/logo.jpg)
-
----
-
-## 🎨 品牌心智与设计资产
-
-* **语义双关**：“算”取命理占算之意，“算了”又是当代人放下执念、拒绝内耗的最高处世智慧。
-* **心智画面**：一个人面对命运的起伏耸耸肩笑了一下，把揉皱的纸团丢进纸篓。
-* **视觉符号**：上方为周易经典断爻（阴爻），下方连接一抹从容松弛的微笑弧线，实现了玄学理性推演与当下治愈微笑的高级融合。
+> **品牌 Slogan**：**算一算，然后，算了。**  
+> **核心定位**：面向当代人精神状态的沉浸式反内耗与情绪松弛产品。以易经、星盘、八字、塔罗为心理投射镜面，以对话式交互与酒馆人设为纽带，帮助用户看清现状、卸下执念、拥抱微小确定性。  
+> **GitHub 官方仓库**：[https://github.com/Evan-Joseph/suanle](https://github.com/Evan-Joseph/suanle)
 
 ---
 
-## 📁 工作区目录索引
+## 🎨 品牌资产（Brand Identity）
+
+* **品牌名称**：**算了 · Suanle**
+* **语义双关**：“算”取推演、占算、梳理之意；“算了”又是当代人放下内耗、解脱释怀的口头禅。
+* **Logo 设计**：
+  * 资产路径：[`assets/logo.png`](file:///Users/joseph/Desktop/【项目开发】AI算命/assets/logo.png)
+  * 视觉内涵：上方为周易六十四卦之首的**坤卦**（六断爻，象征大地承载、全然接纳、包容顺应），下方为**一道上扬的微笑曲线**。二者融合，既是古意卦象，又是释怀笑脸。
+
+---
+
+## 📁 工作区目录索引与结构规划
 
 ```
 /Users/joseph/Desktop/【项目开发】AI算命/
 ├── assets/
-│   └── logo.jpg                                  # 品牌官方矢量/高精度 Logo
-├── README.md                                     # [当前文件] 项目总控导引与全景架构图
+│   └── logo.png                                  # 官方品牌 Logo 资产（坤卦微笑图腾）
+├── README.md                                     # [当前文件] 项目总控导引与资产速查
 ├── 01_产品定位与心理学内核/
-│   └── product_definition_and_psychology.md      # 认知重塑哲学、巴纳姆正向工程、荣格共时性与反内耗心理学
+│   └── product_definition_and_psychology.md      # 认知重塑哲学、反内耗机制、心理安全与伦理边界
 ├── 02_玄学理论与算法推演/
-│   └── metaphysics_and_algorithmic_models.md     # 八字十神、紫微十二宫、周易六爻、塔罗数理模型
+│   └── metaphysics_and_algorithmic_models.md     # 八字、紫微、周易六爻、塔罗数理模型与数据契约
 ├── 03_交互仪式感与视觉传达设计/
-│   └── visual_and_interaction_design_spec.md     # 极简克制视觉体系、微小确定性仪式、移动端流体交互
+│   └── visual_and_interaction_design_spec.md     # 极简克制视觉体系、微交互与移动端触觉规范
 ├── 04_酒馆多智能体对话体系/
-│   └── tavern_oracle_personas_and_mechanics.md   # 去AI味真人老友对话流、双轨微动作描写、深层共情机制
+│   └── tavern_oracle_personas_and_mechanics.md   # 酒馆人设架构、去AI味口语化设计、双轨叙事规则
 ├── 05_产品功能地图与前端状态流转/
-│   └── feature_map_and_state_architecture.md     # 移动端架构流转、渐进式画像采集、商业变现与会话管理
+│   └── feature_map_and_state_architecture.md     # 商业化收付款闭环、状态机流转与自洽Mock规范
 └── prompts/
-    ├── BRAND_NAMING_PROMPT.md                    # 品牌策略与命名任务指令存档
-    └── FRONTEND_MASTER_PROMPT.md                 # 【当前核心交付】全量前端研发 Master Prompt
+    ├── BRAND_NAMING_PROMPT.md                    # 品牌命名与定位探索提示词归档
+    └── FRONTEND_MASTER_PROMPT.md                 # 【当前核心交付】交付前端同事的商业级全量开发提示词
 ```
 
 ---
 
-## 🔑 核心接口与技术基础设施
+## 🚀 前端研发启动指南
 
-* **API Base URL**：`https://api.ai-pixel.online/v1`
-* **API Key**：`sk-fD6BC3ofOyAjzSe8uKdbkqVDMXBqPWl4SbdT0a9sVG65UPtM`
-* **主推模型**：`gemini-4-argon`（兼具深层口语化人味、敏锐共情与精准逻辑推理）
-* **协议规范**：OpenAI 兼容 Chat Completions 流式协议（`stream: true`）
-
----
-
-## 🚀 前端研发启动指引
-
-打开 [`prompts/FRONTEND_MASTER_PROMPT.md`](file:///Users/joseph/Desktop/【项目开发】AI算命/prompts/FRONTEND_MASTER_PROMPT.md)，将全部正文作为第一条提示词发送给负责前端开发的同事或智能体。提示词已完全解除技术栈与机械功能范围限制，全面聚焦于移动端竖屏体验、真实人味、商业闭环与细节打磨。
+* 打开 [`prompts/FRONTEND_MASTER_PROMPT.md`](file:///Users/joseph/Desktop/【项目开发】AI算命/prompts/FRONTEND_MASTER_PROMPT.md)，将其中代码块中的内容完整复制给负责前端开发的同事或智能体。
+* 提示词已配置：
+  1. 完全开放的技术栈选择与交互设计自由；
+  2. 手机竖屏优先、从亲切聊天框切入、拒绝机械大表单；
+  3. 真实的商业化收付款与用户状态闭环；
+  4. 真实可用的 API 配置（`https://api.ai-pixel.online/v1`，模型 `gemini-4-argon`）；
+  5. 严禁出现低级开发者自嗨文案，确保达到直接投产的高品质要求。
