@@ -112,29 +112,31 @@
 
 ## 🚀 快速开始 (Quick Start)
 
-所有 6 套工程均具备完整的自洽离线 Mock 逻辑，可独立启动运行。以运行 `6-suanle-opus55high` 为例：
+### 1. 运行根目录「终极融合生产版本」（推荐）
+
+本项目根目录已完整集成了 6 项探索工程的精华（全功能酒馆双轨对话、DeepSeek 式思维链折叠、百岁人生 K 线与四柱原局双重视图、物理揉纸团释怀仪轨、生活化 Token 算力换算与随喜打赏）：
 
 ```bash
 # 1. 克隆本仓库
 git clone https://github.com/Evan-Joseph/suanle.git
 cd suanle
 
-# 2. 进入目标作品目录
-cd works/6-suanle-opus55high
+# 2. 一键安装依赖
+pnpm install # 或 npm install
 
-# 3. 安装依赖
-npm install
-
-# 4. 配置环境变量 (可选，如需接入真实在线 LLM)
-# 复制并配置 .env.local，填入 API Base 与 Key
-# API Base: https://api.ai-pixel.online/v1
-# Model: gemini-4-argon
-
-# 5. 启动开发服务器
-npm run dev
+# 3. 启动开发服务器 (内置默认大模型连接与全自洽内存降级，无需复杂配置即可开箱即用)
+pnpm dev # 或 npm run dev
 ```
 
 在本地浏览器打开 [http://localhost:3000](http://localhost:3000) 即可即时体验。
+
+### 2. 独立运行任一历史探索作品
+若需单独查看探索阶段的某一个历史实现版本（如 `works/6-suanle-opus55high`），可直接进入对应子目录：
+
+```bash
+cd works/6-suanle-opus55high
+npm install && npm run dev
+```
 
 ---
 
