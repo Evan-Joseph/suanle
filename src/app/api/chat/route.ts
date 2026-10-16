@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     const g = extractGender(lastUser);
     if (g) profile.gender = g;
   }
-  const engine = resolveEngine(req);
+  const engine = resolveEngine(req, "chat");
   const limited = !engine.custom && !allow(clientKey(req, anonId), 24, 60_000);
   const system = buildSystemPrompt(profile, { deep, now: userNow(body.tzOffset), summary: combinedSummary || undefined });
   const llmMessages: LLMMessage[] = [{ role: "system", content: system }, ...messages];

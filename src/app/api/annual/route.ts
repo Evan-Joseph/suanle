@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!allow(clientKey(req, anonId) + "|annual", 4, 60_000)) return Response.json({ report: base, source: "local" });
 
   const r = await complete(
-    resolveEngine(req),
+    resolveEngine(req, "annual"),
     [
       {
         role: "system",

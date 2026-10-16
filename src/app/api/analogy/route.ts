@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   if (tokens <= 0 || !allow(clientKey(req) + "|analogy", 6, 60_000)) return Response.json(fallback);
 
   const r = await complete(
-    resolveEngine(req),
+    resolveEngine(req, "analogy"),
     [
       {
         role: "system",
