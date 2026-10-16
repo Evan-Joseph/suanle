@@ -30,10 +30,14 @@ services:
       - PORT=3000
       - HOSTNAME=0.0.0.0
       - DATABASE_URL=postgresql://suanle:suanle_local_db@db:5432/suanle
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.ai-pixel.online/v1}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://www.jiji.cc/v1}
+      - LLM_BACKUP_BASES=${LLM_BACKUP_BASES:-https://api.jiji.cc/v1,https://api-slb.jiji.cc/v1}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_MODEL=${LLM_MODEL:-gemini-4-argon}
-      - LLM_FALLBACK_MODELS=${LLM_FALLBACK_MODELS:-gemini-2.5-flash}
+      - LLM_LIGHT_MODEL=${LLM_LIGHT_MODEL:-gemini-3.8-flash}
+      - LLM_FALLBACK_MODELS=${LLM_FALLBACK_MODELS:-gemini-3.8-flash,gemini-3.7-flash,gemini-2.5-flash}
+      - LLM_SECONDARY_BASE_URL=${LLM_SECONDARY_BASE_URL:-https://api.ai-pixel.online/v1}
+      - LLM_SECONDARY_API_KEY=${LLM_SECONDARY_API_KEY:-}
     expose:
       - "3000"
 
