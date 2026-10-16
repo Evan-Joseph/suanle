@@ -1,21 +1,39 @@
 {
     email gaoshenzhou@foxmail.com
+    auto_https disable_redirects
+}
+
+http://www.suanle.cc, http://suanle.cc, :80 {
+    handle /tencent12308029834315544501.txt {
+        header Content-Type text/plain
+        respond "135832738381581955" 200
+    }
+    handle {
+        redir https://www.suanle.cc{uri} permanent
+    }
+}
+
+suanle.cc {
+    handle /tencent12308029834315544501.txt {
+        header Content-Type text/plain
+        respond "135832738381581955" 200
+    }
+    handle {
+        redir https://www.suanle.cc{uri} permanent
+    }
 }
 
 www.suanle.cc {
     encode gzip zstd
 
-    reverse_proxy app:3000 {
-        flush_interval -1
+    handle /tencent12308029834315544501.txt {
+        header Content-Type text/plain
+        respond "135832738381581955" 200
     }
-}
 
-http://suanle.cc {
-    redir https://www.suanle.cc{uri} permanent
-}
-
-:80 {
-    reverse_proxy app:3000 {
-        flush_interval -1
+    handle {
+        reverse_proxy app:3000 {
+            flush_interval -1
+        }
     }
 }
