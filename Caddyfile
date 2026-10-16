@@ -1,0 +1,21 @@
+{
+    email gaoshenzhou@foxmail.com
+}
+
+www.suanle.cc {
+    encode gzip zstd
+
+    reverse_proxy app:3000 {
+        flush_interval -1
+    }
+}
+
+http://suanle.cc {
+    redir https://www.suanle.cc{uri} permanent
+}
+
+:80 {
+    reverse_proxy app:3000 {
+        flush_interval -1
+    }
+}
