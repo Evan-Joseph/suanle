@@ -41,12 +41,51 @@ function useChannels(): Channel[] | null {
   return list;
 }
 
+interface ClientEnv {
+  inWeChat: boolean;
+  inAlipay: boolean;
+  inMiniProgram: boolean;
+  isMobile: boolean;
+}
+
+function useClientEnv(): ClientEnv {
+  const [env, setEnv] = useState<ClientEnv>({
+    inWeChat: false,
+    inAlipay: false,
+    inMiniProgram: false,
+    isMobile: false,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const ua = navigator.userAgent.toLowerCase();
+    const inWeChat = /micromessenger/.test(ua);
+    const inAlipay = /alipayclient/.test(ua);
+    const inMiniProgram =
+      /miniprogram/.test(ua) ||
+      (window as unknown as { __wxjs_environment?: string }).__wxjs_environment === "miniprogram";
+    const isMobile = /mobile|android|iphone|ipad|phone/i.test(ua);
+    setEnv({ inWeChat, inAlipay, inMiniProgram, isMobile });
+  }, []);
+
+  return env;
+}
+
 /** 扫码随喜 / 点灯的共用流程 */
 function PayStep({ cents, label, kind, tier, onPaid, onBack }: { cents: number; label: string; kind: "tip" | "lamp"; tier: string; onPaid: () => void; onBack: () => void }) {
   const channels = useChannels();
   const [ch, setCh] = useState<"wechat" | "alipay">("wechat");
   const [busy, setBusy] = useState(false);
+  const env = useClientEnv();
   const cur = channels?.find((c) => c.id === ch) ?? channels?.[0];
+
+  const isInsideContainer = env.inWeChat || env.inAlipay || env.inMiniProgram;
+  const canShowJump = env.isMobile && !isInsideContainer;
+
+  const alipayDeepLink = cur?.url
+    ? `alipays://platformapi/startapp?saId=10000007&qrcode=${encodeURIComponent(cur.url)}`
+    : "";
+
   return (
     <div className="pb-2">
       <div className="mx-auto grid w-[220px] grid-cols-2 rounded-full bg-ink/[0.05] p-1">
@@ -57,26 +96,71 @@ function PayStep({ cents, label, kind, tier, onPaid, onBack }: { cents: number; 
         ))}
       </div>
       <div className="mt-5 flex flex-col items-center">
-        <div className="grid h-[212px] w-[212px] place-items-center rounded-[24px] bg-white p-4 shadow-[0_6px_24px_rgba(0,0,0,0.08)]">
-          {cur?.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={cur.image} alt={`${cur.label}收款码`} className="h-full w-full object-contain" />
-          ) : cur ? (
-            <QRCodeSVG value={cur.url} size={180} level="M" bgColor="#ffffff" fgColor="#2b2b2b" />
+        <div className="relative grid h-[212px] w-[212px] place-items-center rounded-[24px] bg-white p-4 shadow-[0_6px_24px_rgba(0,0,0,0.08)]">
+          {cur?.url ? (
+            <QRCodeSVG
+              value={cur.url}
+              size={180}
+              level="M"
+              bgColor="#ffffff"
+              fgColor="#1a1a1a"
+              className="h-full w-full"
+            />
           ) : (
             <div className="skeleton h-full w-full rounded-xl" />
           )}
         </div>
         <div className="mt-4 font-song text-[22px] font-bold">{yuan(cents)}</div>
         <div className="mt-0.5 text-[13px] text-ink-2">{label}</div>
-        <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">截图或长按保存，用{ch === "wechat" ? "微信" : "支付宝"}扫一扫，填上这个金额就好。</p>
-        {ch === "alipay" && cur?.url && (
-          <a
-            href={`alipays://platformapi/startapp?saId=10000007&qrcode=${encodeURIComponent(cur.url)}`}
-            className="mt-2 inline-flex items-center text-[12px] font-medium text-ink underline underline-offset-4 hover:opacity-80"
-          >
-            手机端点此直接跳转支付宝 App →
-          </a>
+
+        {/* 智能情境提示与跳转超链接（检测到微信、支付宝或小程序时自动隐藏跳转超链接） */}
+        {env.inWeChat && ch === "wechat" && (
+          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-ink-2">
+            当前在微信内，<b>长按上方二维码</b>即可直接识别并随喜。
+          </p>
+        )}
+        {env.inWeChat && ch === "alipay" && (
+          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
+            当前在微信内，可截图保存上方二维码后，使用支付宝扫码。
+          </p>
+        )}
+        {env.inAlipay && ch === "alipay" && (
+          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-ink-2">
+            当前在支付宝内，<b>长按上方二维码</b>即可直接付款。
+          </p>
+        )}
+        {env.inAlipay && ch === "wechat" && (
+          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
+            当前在支付宝内，可截图保存上方二维码后，使用微信扫码。
+          </p>
+        )}
+        {env.inMiniProgram && (
+          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-ink-2">
+            当前在小程序中，请长按或截图保存二维码进行支付。
+          </p>
+        )}
+        {!isInsideContainer && (
+          <>
+            <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
+              {env.isMobile ? "长按保存二维码，或点击下方按钮直接打开 App 支付：" : `用手机${ch === "wechat" ? "微信" : "支付宝"}扫一扫，填上这个金额就好。`}
+            </p>
+            {canShowJump && ch === "alipay" && alipayDeepLink && (
+              <a
+                href={alipayDeepLink}
+                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-on-ink shadow-sm transition hover:opacity-90 active:scale-[0.98]"
+              >
+                <span>打开支付宝 App 支付 →</span>
+              </a>
+            )}
+            {canShowJump && ch === "wechat" && (
+              <a
+                href="weixin://"
+                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-ink/[0.08] px-4 py-2 text-[12.5px] font-medium text-ink transition hover:bg-ink/[0.12] active:scale-[0.98]"
+              >
+                <span>打开微信（相册扫码）→</span>
+              </a>
+            )}
+          </>
         )}
       </div>
       <div className="mt-5 space-y-1">
