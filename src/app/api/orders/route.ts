@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return Response.json({
     channels: [
-      { id: "wechat", label: "微信", url: process.env.TIP_WECHAT_URL || "wxp://f2f0suanle-tip", image: process.env.TIP_WECHAT_IMAGE || "" },
-      { id: "alipay", label: "支付宝", url: process.env.TIP_ALIPAY_URL || "https://qr.alipay.com/suanle-tip", image: process.env.TIP_ALIPAY_IMAGE || "" },
+      { id: "wechat", label: "微信", url: process.env.TIP_WECHAT_URL || "https://payapp.wechatpay.cn/sjt/qr/AQGjGzMYLop8zZDYSTRFCAL2", image: process.env.TIP_WECHAT_IMAGE || "/pay/wechat.png" },
+      { id: "alipay", label: "支付宝", url: process.env.TIP_ALIPAY_URL || "https://qr.alipay.com/2m615723l8cwi3pxfjjdmeb", image: process.env.TIP_ALIPAY_IMAGE || "/pay/alipay.png" },
     ],
   });
 }

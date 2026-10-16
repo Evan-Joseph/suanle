@@ -70,6 +70,14 @@ function PayStep({ cents, label, kind, tier, onPaid, onBack }: { cents: number; 
         <div className="mt-4 font-song text-[22px] font-bold">{yuan(cents)}</div>
         <div className="mt-0.5 text-[13px] text-ink-2">{label}</div>
         <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">截图或长按保存，用{ch === "wechat" ? "微信" : "支付宝"}扫一扫，填上这个金额就好。</p>
+        {ch === "alipay" && cur?.url && (
+          <a
+            href={`alipays://platformapi/startapp?saId=10000007&qrcode=${encodeURIComponent(cur.url)}`}
+            className="mt-2 inline-flex items-center text-[12px] font-medium text-ink underline underline-offset-4 hover:opacity-80"
+          >
+            手机端点此直接跳转支付宝 App →
+          </a>
+        )}
       </div>
       <div className="mt-5 space-y-1">
         <PrimaryButton
