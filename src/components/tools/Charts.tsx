@@ -1,239 +1,175 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { computeBazi, todayAlmanac, computeKLine, type BaziResult, type Candle } from "@/lib/divination";
-import { Pill } from "../ui";
+import { useState } from "react";
+import { SHICHEN, todayAlmanac, WX_COLOR, WX_ORDER, type BaziResult, parseBirth } from "@/lib/divination";
 
-const WX_COLOR: Record<string, string> = { 木: "#7d9a6f", 火: "#c4553a", 土: "#c9a45c", 金: "#a9b4bd", 水: "#3f5a73" };
-const WX_PLAIN: Record<string, string> = {
-  木: "像一棵树，向上生长，有主见也有韧性",
-  火: "像一盏灯，热情外放，感染力强",
-  土: "像一块地，稳重可靠，能托住别人",
-  金: "像一把刀，干脆利落，讲原则",
-  水: "像一条河，聪明灵活，心思细腻",
-};
-
-export function KLineChart({ candles, currentAge }: { candles: Candle[]; currentAge: number }) {
-  const [sel, setSel] = useState<Candle | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  const cw = 11;
-  const H = 190;
-  const pad = 14;
-  const W = candles.length * cw + 24;
-  const y = (v: number) => pad + (100 - v) * ((H - pad * 2) / 100);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (el) el.scrollLeft = Math.max(0, (currentAge - 10) * cw);
-  }, [currentAge, cw]);
-
-  const ma = candles.map((_, i) => {
-    const s = candles.slice(Math.max(0, i - 4), i + 1);
-    return s.reduce((a, c) => a + c.close, 0) / s.length;
-  });
-
-  const shown = sel ?? candles.find((c) => c.age === currentAge) ?? candles[0];
-
+export function BaziChart({ b, compact = false }: { b: BaziResult; compact?: boolean }) {
+  const age = new Date().getFullYear() - (b.dayun[0] ? b.dayun[0].startYear - b.dayun[0].startAge : new Date().getFullYear());
+  const max = Math.max(1, ...WX_ORDER.map((k) => b.wuxing[k]));
   return (
-    <div className="rounded-2xl border border-line bg-white/80 p-3.5 anim-fade-in">
-      <div className="mb-2.5 flex items-start justify-between gap-2">
-        <div>
-          <div className="font-mono text-[16px] font-bold text-ink">
-            {shown.age}岁 <span className="text-[12px] font-normal text-mute">{shown.year}年 · {shown.pillar}</span>
-          </div>
-          <div className="mt-0.5 font-mono text-[11px] text-mute">
-            开 {shown.open} · 高 {shown.high} · 低 {shown.low} · 收{" "}
-            <span className={shown.close >= shown.open ? "font-bold text-sage" : "font-bold text-seal"}>
-              {shown.close}
-            </span>
-          </div>
-        </div>
-        {shown.tag && (
-          <span className="shrink-0 rounded-full bg-paper-2 px-2.5 py-0.5 text-[11px] text-ink-2">
-            {shown.tag}
+    <div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-mute">
+        <span>{b.lunarText}</span>
+        <span>属{b.shengxiao}</span>
+        <span>{b.zodiac}</span>
+        {!b.hourKnown && <span>时辰不详</span>}
+        {b.solarCalibration?.applied && (
+          <span className="rounded-full bg-seal/10 px-2 py-0.5 text-[11px] font-medium text-seal">
+            真太阳时已校准 · {b.solarCalibration.city}（{b.solarCalibration.offsetMinutes >= 0 ? "+" : ""}{b.solarCalibration.offsetMinutes}分）
           </span>
         )}
       </div>
-
-      <div ref={ref} className="no-scrollbar relative -mx-3.5 overflow-x-auto px-3.5">
-        <svg width={W} height={H + 20} className="block select-none">
-          {[40, 50, 65].map((v) => (
-            <line key={v} x1="0" x2={W} y1={y(v)} y2={y(v)} stroke={v === 50 ? "#d9d3c8" : "#eeeae3"} strokeDasharray={v === 50 ? "0" : "3 4"} />
-          ))}
-          {candles.map((c, i) => {
-            const x = 12 + i * cw;
-            const up = c.close >= c.open;
-            const color = up ? "#7d9a6f" : "#c4553a";
-            const top = y(Math.max(c.open, c.close));
-            const bh = Math.max(1.5, Math.abs(y(c.open) - y(c.close)));
-            return (
-              <g key={c.age} onClick={() => setSel(c)} style={{ cursor: "pointer" }}>
-                <rect x={x - 4} y={0} width={cw} height={H} fill="transparent" />
-                <line x1={x} x2={x} y1={y(c.high)} y2={y(c.low)} stroke={color} strokeWidth="1" />
-                <rect x={x - 3} y={top} width={6} height={bh} rx="1" fill={up ? "#fff" : color} stroke={color} strokeWidth="1" />
-                {c.age % 10 === 0 && (
-                  <text x={x} y={H + 14} textAnchor="middle" fontSize="9" fill="#9a958c">
-                    {c.age}
-                  </text>
-                )}
-                {sel?.age === c.age && <rect x={x - 5} y={2} width={10} height={H - 4} rx="2" fill="rgba(43,43,43,0.08)" />}
-              </g>
-            );
-          })}
-          <polyline
-            points={ma.map((v, i) => `${12 + i * cw},${y(v)}`).join(" ")}
-            fill="none"
-            stroke="#6e8ba6"
-            strokeWidth="1.2"
-            opacity="0.65"
-          />
-          {currentAge <= candles.length && (
-            <g>
-              <line x1={12 + (currentAge - 1) * cw} x2={12 + (currentAge - 1) * cw} y1={4} y2={H} stroke="#2b2b2b" strokeDasharray="2 3" opacity="0.45" />
-              <text x={12 + (currentAge - 1) * cw + 3} y={12} fontSize="9" fill="#2b2b2b" opacity="0.7">
-                今年
-              </text>
-            </g>
-          )}
-        </svg>
-      </div>
-      <div className="mt-2 text-center text-[10.5px] text-mute">
-        横向滑动查看 1~{candles.length} 岁运势 · 点按年份可看当年卦气
-      </div>
-    </div>
-  );
-}
-
-export function BaziChart({ b, birth }: { b: BaziResult; birth?: string }) {
-  const [tab, setTab] = useState<"pillars" | "kline">("pillars");
-  const max = Math.max(...Object.values(b.wuxing), 1);
-  const kl = useMemo(() => (birth ? computeKLine(b, birth) : null), [b, birth]);
-
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-center gap-2">
-        <button
-          onClick={() => setTab("pillars")}
-          className={`rounded-full px-4 py-1 text-[13px] font-medium transition ${
-            tab === "pillars" ? "bg-ink text-paper shadow-sm" : "bg-paper-2 text-mute hover:text-ink-2"
-          }`}
-        >
-          四柱原局
-        </button>
-        <button
-          onClick={() => setTab("kline")}
-          className={`rounded-full px-4 py-1 text-[13px] font-medium transition ${
-            tab === "kline" ? "bg-ink text-paper shadow-sm" : "bg-paper-2 text-mute hover:text-ink-2"
-          }`}
-        >
-          人生百岁K线
-        </button>
-      </div>
-
-      {tab === "pillars" ? (
-        <div className="anim-fade-in">
-          <div className="grid grid-cols-4 gap-2">
-            {b.pillars.map((p) => (
-              <div key={p.label} className={`rounded-2xl border border-line bg-white/70 py-3 text-center ${p.label === "日柱" ? "ring-1 ring-seal/40" : ""}`}>
-                <div className="text-[11px] text-mute">{p.label}</div>
-                <div className="mt-1 font-song text-[22px] font-bold leading-tight tracking-wider" style={{ writingMode: "vertical-rl", margin: "4px auto 0", height: 52 }}>
-                  {p.gz}
-                </div>
-                <div className="mt-1 text-[11px] text-ink-2">{p.wx || "—"}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 space-y-2">
-            {Object.entries(b.wuxing).map(([k, v]) => (
-              <div key={k} className="flex items-center gap-3 text-[13px]">
-                <span className="w-4 font-song font-bold" style={{ color: WX_COLOR[k] }}>
-                  {k}
-                </span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/5">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(v / max) * 100}%`, background: WX_COLOR[k] }} />
-                </div>
-                <span className="w-4 text-right text-mute">{v}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-2xl bg-paper-2 p-3.5 text-[13.5px] leading-relaxed text-ink-2">
-            日主 <b className="font-song text-ink">{b.dayMaster}{b.dayMasterWx}</b>——{WX_PLAIN[b.dayMasterWx] ?? "自有一番气象"}。
-            <div className="mt-1 text-[12.5px] text-mute">
-              {b.lunarText} · 属{b.shengxiao} · {b.zodiac} · {b.nayin}
-              {!b.hourKnown && " · 时辰不详"}
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {b.pillars.map((p) => {
+          const day = p.label === "日柱";
+          return (
+            <div key={p.label} className={`flex flex-col items-center rounded-2xl py-2.5 ${day ? "bg-ink/[0.05] ring-1 ring-ink/10" : "bg-paper-2/70"}`}>
+              <span className="text-[11px] text-mute">{p.label}</span>
+              <span className={`mt-1 text-[11px] ${day ? "font-semibold text-seal" : "text-ink-2"}`}>{p.shishen || "—"}</span>
+              {p.gz ? (
+                <>
+                  <span className="mt-1 font-song text-[24px] font-bold leading-none" style={{ color: WX_COLOR[p.wx.charAt(0)] }}>
+                    {p.gan}
+                  </span>
+                  <span className="mt-1.5 font-song text-[24px] font-bold leading-none" style={{ color: WX_COLOR[p.wx.charAt(1)] }}>
+                    {p.zhi}
+                  </span>
+                </>
+              ) : (
+                <span className="my-[13px] font-song text-[22px] leading-[2.2] text-faint">?</span>
+              )}
+              {!compact && <span className="mt-1.5 text-[10px] text-mute">{p.nayin || " "}</span>}
             </div>
-          </div>
-        </div>
-      ) : (
-        <div>
-          {kl ? (
-            <KLineChart candles={kl.candles} currentAge={kl.currentAge} />
-          ) : (
-            <div className="rounded-2xl border border-dashed border-line p-6 text-center text-[13px] text-mute">
-              生辰数据不足以推演时序K线
+          );
+        })}
+      </div>
+      <div className="mt-4 space-y-1.5">
+        {WX_ORDER.map((k) => (
+          <div key={k} className="flex items-center gap-2.5">
+            <span className="w-4 text-center font-song text-[13px] font-bold" style={{ color: WX_COLOR[k] }}>
+              {k}
+            </span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink/[0.06]">
+              <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${(b.wuxing[k] / max) * 100}%`, background: WX_COLOR[k] }} />
             </div>
-          )}
+            <span className="w-4 text-right text-[12px] tabular-nums text-mute">{b.wuxing[k]}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
+        日主 <b className="font-song">{b.dayMaster}</b>（{b.dayMasterWx}）。{b.strongest}气最足，{b.weakest}气偏弱——多的那股是天赋也是执念，少的那股向外借。
+      </p>
+      {!compact && b.dayun.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 text-[12px] text-mute">大运 · 十年一步</div>
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {b.dayun.map((d, i) => {
+              const next = b.dayun[i + 1];
+              const cur = age >= d.startAge && (!next || age < next.startAge);
+              return (
+                <div key={d.gz + d.startAge} className={`flex w-[58px] shrink-0 flex-col items-center rounded-xl py-2 ${cur ? "bg-ink text-on-ink" : "bg-paper-2/70"}`}>
+                  <span className="font-song text-[15px] font-bold">{d.gz}</span>
+                  <span className={`mt-0.5 text-[10.5px] ${cur ? "text-on-ink/75" : "text-mute"}`}>{d.startAge}岁</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-export function BirthForm({ onSave, initialGender }: { onSave: (birth: string, gender?: string) => void; initialGender?: string }) {
-  const [date, setDate] = useState("1996-06-18");
-  const [time, setTime] = useState("12:00");
-  const [noTime, setNoTime] = useState(false);
-  const [gender, setGender] = useState<string | undefined>(initialGender);
-  const preview = computeBazi(noTime ? date : `${date} ${time}`);
+const POPULAR_CITIES = ["北京", "上海", "广州", "深圳", "成都", "重庆", "杭州", "武汉", "西安", "南京"];
+
+export function BirthForm({
+  initialBirth,
+  initialGender,
+  initialCity,
+  onSave,
+  cta = "排盘",
+}: {
+  initialBirth?: string;
+  initialGender?: string;
+  initialCity?: string;
+  onSave: (birth: string, gender: string, city?: string) => void;
+  cta?: string;
+}) {
+  const p = parseBirth(initialBirth, initialCity);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const [date, setDate] = useState(p ? `${p.y}-${pad(p.m)}-${pad(p.d)}` : "");
+  const [hour, setHour] = useState<string>(p?.hourKnown ? String(p.h % 2 === 0 ? p.h : (p.h + 1) % 24) : "");
+  const [gender, setGender] = useState(initialGender === "男" ? "男" : initialGender === "女" ? "女" : "");
+  const [city, setCity] = useState(initialCity ?? "");
+  const ok = /^\d{4}-\d{2}-\d{2}$/.test(date) && !!gender;
+
+  const preview = parseBirth(hour ? `${date} ${pad(Number(hour))}:00` : date, city);
+
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="text-[12.5px] text-mute">出生日期（公历）</span>
-        <input
-          type="date"
-          value={date}
-          max="2030-12-31"
-          min="1920-01-01"
-          onChange={(e) => setDate(e.target.value)}
-          className="mt-1 block w-full rounded-xl border border-line bg-white px-3 py-2.5 text-ink outline-none focus:border-ink/40"
-        />
+        <span className="mb-1.5 block text-[12.5px] text-mute">阳历生日</span>
+        <input type="date" value={date} min="1920-01-01" max="2030-12-31" onChange={(e) => setDate(e.target.value)} className="h-11 w-full rounded-xl border border-line bg-card px-3 text-ink outline-none focus:border-ink/40" />
       </label>
-      <div className="flex items-end gap-3">
-        <label className="block flex-1">
-          <span className="text-[12.5px] text-mute">出生时间</span>
-          <input
-            type="time"
-            value={time}
-            disabled={noTime}
-            onChange={(e) => setTime(e.target.value)}
-            className="mt-1 block w-full rounded-xl border border-line bg-white px-3 py-2.5 text-ink outline-none disabled:opacity-40"
-          />
-        </label>
-        <Pill active={noTime} onClick={() => setNoTime(!noTime)} className="mb-1">
-          不记得了
-        </Pill>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[12.5px] text-mute">性别</span>
-        {["女", "男", "不说"].map((g) => (
-          <Pill key={g} active={gender === g} onClick={() => setGender(g)}>
-            {g}
-          </Pill>
-        ))}
-      </div>
-      {preview && (
-        <div className="text-[12px] text-mute">
-          预览：{preview.pillars.map((p) => p.gz).join(" ")} · 属{preview.shengxiao}
+      <label className="block">
+        <span className="mb-1.5 block text-[12.5px] text-mute">出生时辰</span>
+        <select value={hour} onChange={(e) => setHour(e.target.value)} className="h-11 w-full appearance-none rounded-xl border border-line bg-card px-3 text-ink outline-none focus:border-ink/40">
+          <option value="">不记得了（按午时）</option>
+          {SHICHEN.map((s) => (
+            <option key={s.label} value={String(s.hour)}>
+              {s.label} · {s.range}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[12.5px] text-mute">出生城市（用于校准真太阳时）</span>
+          {preview?.solarCalibration && (
+            <span className="text-[11px] text-seal">
+              偏差 {preview.solarCalibration.offsetMinutes >= 0 ? "+" : ""}{preview.solarCalibration.offsetMinutes} 分
+            </span>
+          )}
         </div>
-      )}
+        <input
+          type="text"
+          value={city}
+          placeholder="如：成都、北京、广州（可留空）"
+          onChange={(e) => setCity(e.target.value.slice(0, 20))}
+          className="h-11 w-full rounded-xl border border-line bg-card px-3 text-ink outline-none focus:border-ink/40"
+        />
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {POPULAR_CITIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCity(c)}
+              className={`rounded-full px-2 py-0.5 text-[11px] transition ${city.includes(c) ? "bg-ink text-on-ink" : "bg-ink/[0.04] text-mute hover:bg-ink/[0.08]"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </label>
+      <div>
+        <span className="mb-1.5 block text-[12.5px] text-mute">性别（大运顺逆要用）</span>
+        <div className="grid grid-cols-2 gap-2">
+          {["女", "男"].map((g) => (
+            <button key={g} type="button" onClick={() => setGender(g)} className={`h-11 rounded-xl border text-[15px] transition active:scale-[0.98] ${gender === g ? "border-ink bg-ink text-on-ink" : "border-line bg-card text-ink-2"}`}>
+              {g}
+            </button>
+          ))}
+        </div>
+      </div>
       <button
-        disabled={!preview}
-        onClick={() => onSave(noTime ? date : `${date} ${time}`, gender && gender !== "不说" ? gender : undefined)}
-        className="w-full rounded-2xl bg-ink py-3 text-[15px] text-paper transition active:scale-[0.98] disabled:opacity-40"
+        type="button"
+        disabled={!ok}
+        onClick={() => onSave(hour ? `${date} ${pad(Number(hour) === 0 ? 0 : Number(hour))}:00` : date, gender, city.trim() || undefined)}
+        className="h-12 w-full rounded-2xl bg-ink text-[15px] font-medium tracking-[0.1em] text-on-ink transition active:scale-[0.98] disabled:opacity-35"
       >
-        排盘
+        {cta}
       </button>
-      <p className="text-center text-[11.5px] text-mute">只存在你自己的手机里。</p>
+      <p className="text-center text-[11.5px] text-mute">生辰只保存在这台设备上</p>
     </div>
   );
 }
@@ -241,36 +177,42 @@ export function BirthForm({ onSave, initialGender }: { onSave: (birth: string, g
 export function AlmanacCard({ compact = false }: { compact?: boolean }) {
   const [a] = useState(() => todayAlmanac());
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-line bg-gradient-to-br from-[#fffdf8] to-[#f4efe4] p-4">
-      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-25 blur-2xl" style={{ background: a.color.hex }} />
-      <div className="flex items-end justify-between">
-        <div>
-          <div className="text-[12px] tracking-widest text-mute">
-            {a.weekday} · {a.jieqi ? `${a.jieqi}后` : "今日"}
-          </div>
-          <div className={`font-song font-bold ${compact ? "text-[24px]" : "text-[34px]"} leading-tight`}>{a.dateText}</div>
-          <div className="text-[13px] text-ink-2">农历{a.lunarText}</div>
+    <div className="overflow-hidden rounded-[22px] border border-line bg-card/85 shadow-[0_2px_14px_rgba(60,40,10,0.04)]">
+      <div className="flex items-stretch">
+        <div className="flex w-[34%] shrink-0 flex-col items-center justify-center border-r border-line py-4">
+          <span className="text-[11.5px] text-mute">{a.weekday}</span>
+          <span className="mt-1 font-song text-[30px] font-bold leading-none">{a.dateText.replace(/^\d+月/, "")}</span>
+          <span className="mt-1.5 text-[12px] text-ink-2">{a.dateText.match(/^\d+月/)?.[0]}</span>
         </div>
-        <div className="text-right">
-          <div className="text-[11px] text-mute">今日色</div>
-          <div className="mt-1 flex items-center justify-end gap-1.5">
-            <span className="h-4 w-4 rounded-full border border-black/10" style={{ background: a.color.hex }} />
-            <span className="font-song text-[14px]">{a.color.name}</span>
+        <div className="min-w-0 flex-1 px-4 py-3.5">
+          <div className="font-song text-[16px] font-bold">农历{a.lunarText}</div>
+          <div className="mt-0.5 truncate text-[11.5px] text-mute">{a.ganzhi}</div>
+          <div className="mt-2.5 flex items-start gap-2 text-[13px]">
+            <span className="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-md bg-sage/15 text-[11px] font-bold text-sage">宜</span>
+            <span className="text-ink-2 [word-break:keep-all]">{a.yi.slice(0, compact ? 3 : 5).join(" · ") || "诸事随心"}</span>
+          </div>
+          <div className="mt-1.5 flex items-start gap-2 text-[13px]">
+            <span className="mt-px grid h-5 w-5 shrink-0 place-items-center rounded-md bg-seal/12 text-[11px] font-bold text-seal">忌</span>
+            <span className="text-ink-2 [word-break:keep-all]">{a.ji.slice(0, compact ? 3 : 5).join(" · ") || "无甚禁忌"}</span>
           </div>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
-        <div className="rounded-xl bg-white/70 px-3 py-2">
-          <span className="mr-1.5 inline-grid h-5 w-5 place-items-center rounded-full bg-sage text-[11px] text-white">宜</span>
-          <span className="text-ink-2">{a.yi.slice(0, compact ? 2 : 4).join(" ")}</span>
+      {!compact && (
+        <div className="grid grid-cols-2 border-t border-line text-[12.5px]">
+          <div className="flex items-center gap-2 border-r border-line px-4 py-3">
+            <span className="h-4 w-4 shrink-0 rounded-full ring-1 ring-ink/10" style={{ background: a.color.hex }} />
+            <span className="text-ink-2">幸运色 · {a.color.name}</span>
+          </div>
+          <div className="truncate px-4 py-3 text-ink-2">
+            冲{a.chong} · 煞{a.sha}
+          </div>
         </div>
-        <div className="rounded-xl bg-white/70 px-3 py-2">
-          <span className="mr-1.5 inline-grid h-5 w-5 place-items-center rounded-full bg-seal text-[11px] text-white">忌</span>
-          <span className="text-ink-2">{a.ji.slice(0, compact ? 2 : 4).join(" ")}</span>
-        </div>
+      )}
+      <div className="border-t border-line bg-paper-2/60 px-4 py-3">
+        <div className="text-[12px] text-mute">今日小确定</div>
+        <div className="mt-0.5 text-[14px] text-ink">{a.small}</div>
+        {!compact && <div className="mt-2 font-song text-[14px] text-ink-2">「{a.line}」</div>}
       </div>
-      <div className="mt-3 font-song text-[14.5px] text-ink">「{a.line}」</div>
-      {!compact && <div className="mt-1 text-[11px] text-mute">{a.ganzhi}</div>}
     </div>
   );
 }

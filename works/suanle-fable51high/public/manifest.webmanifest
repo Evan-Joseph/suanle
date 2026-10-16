@@ -1,0 +1,10 @@
+{
+  "name": "算了 · Suanle",
+  "short_name": "算了",
+  "description": "算一算，然后，算了。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#f7f4ee",
+  "icons": [{ "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

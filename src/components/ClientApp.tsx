@@ -1,18 +1,24 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { Logo } from "./ui";
+import { useEffect, useState } from "react";
+import { useApp } from "@/lib/store";
+import AppShell from "./AppShell";
+import { Splash } from "./ui";
 
-const AppShell = dynamic(() => import("./AppShell"), {
-  ssr: false,
-  loading: () => (
-    <div className="paper-grain mx-auto flex h-[100dvh] max-w-[480px] flex-col items-center justify-center gap-4 text-ink">
-      <Logo size={72} blink />
-      <div className="font-song text-[15px] tracking-[0.3em] text-ink-2">算一算，然后，算了。</div>
-    </div>
-  ),
-});
-
+/** 先从本地取回会话、档案与画像，再进入应用；期间显示骨架屏 */
 export default function ClientApp() {
-  return <AppShell />;
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const done = () => {
+      if (alive) setReady(true);
+    };
+    const unsub = useApp.persist.onFinishHydration(done);
+    Promise.resolve(useApp.persist.rehydrate()).then(done, done);
+    return () => {
+      alive = false;
+      unsub();
+    };
+  }, []);
+  return ready ? <AppShell /> : <Splash />;
 }

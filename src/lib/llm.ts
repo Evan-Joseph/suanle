@@ -10,7 +10,7 @@ export type LLMEvent =
   | { type: "model"; name: string };
 
 const BASE = (process.env.LLM_BASE_URL || "https://api.ai-pixel.online/v1").replace(/\/$/, "");
-const KEY = process.env.LLM_API_KEY || "sk-fD6BC3ofOyAjzSe8uKdbkqVDMXBqPWl4SbdT0a9sVG65UPtM";
+const KEY = process.env.LLM_API_KEY || "";
 const PRIMARY = process.env.LLM_MODEL || "gemini-4-argon";
 const FALLBACKS = (process.env.LLM_FALLBACK_MODELS || "gemini-2.5-flash")
   .split(",")

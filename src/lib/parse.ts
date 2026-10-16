@@ -1,3 +1,5 @@
+import remend from "remend";
+
 export interface Memo {
   name?: string;
   birth?: string;
@@ -12,10 +14,9 @@ export interface ParsedReply {
   thinkOpen: boolean;
   body: string;
   memo: Memo | null;
-  widgetPending: boolean;
 }
 
-/** 解析助手原文：<think> 推演、<memo> 画像、```suanle 卡片；兼容流式的半截标签 */
+/** 解析助手原文：<think> 推演笔记、<memo> 画像；兼容流式中的半截标签 */
 export function parseAssistant(raw: string, streaming = false): ParsedReply {
   let s = raw ?? "";
   let think: string | null = null;
@@ -39,7 +40,10 @@ export function parseAssistant(raw: string, streaming = false): ParsedReply {
   if (mi !== -1) {
     const me = s.indexOf("</memo>", mi);
     if (me !== -1) {
-      const inner = s.slice(mi + 6, me).replace(/```(json)?/g, "").trim();
+      const inner = s
+        .slice(mi + 6, me)
+        .replace(/```(?:json)?/g, "")
+        .trim();
       try {
         memo = JSON.parse(inner) as Memo;
       } catch {
@@ -50,65 +54,80 @@ export function parseAssistant(raw: string, streaming = false): ParsedReply {
       s = s.slice(0, mi);
     }
   }
-  // 去掉孤立的闭合标签和流式末尾半截标签
   s = s.replace(/<\/?(think|memo)>/g, "");
   if (streaming) s = s.replace(/<\/?[a-z]{0,6}$/i, "");
-
-  const { text, widgetPending } = sanitizeMarkdown(s.trim(), streaming);
-  return { think: think?.trim() ?? null, thinkOpen, body: text, memo, widgetPending };
+  return { think: think?.trim() ?? null, thinkOpen, body: s.trim(), memo };
 }
 
-export function sanitizeMarkdown(input: string, streaming: boolean): { text: string; widgetPending: boolean } {
-  let s = input;
+export type Segment = { kind: "md"; text: string } | { kind: "widget"; raw: string; idx: number };
+
+/** 把正文切成 Markdown 段与互动卡片段；流式时隐藏半截卡片、补齐未闭合标记 */
+export function segmentBody(body: string, streaming: boolean): { segments: Segment[]; widgetPending: boolean } {
+  let s = body;
   let widgetPending = false;
-  const fences = s.match(/^\s*```/gm) ?? [];
-  if (fences.length % 2 === 1) {
+  const fences = (s.match(/```/g) ?? []).length;
+  if (fences % 2 === 1) {
     const last = s.lastIndexOf("```");
     const tail = s.slice(last);
-    const firstLine = tail.split("\n")[0];
-    const typingLang = streaming && !tail.includes("\n");
-    if (firstLine.includes("suanle") || typingLang) {
+    const typingLang = !tail.includes("\n") && !tail.includes("{");
+    if (tail.startsWith("```suanle") || (streaming && typingLang)) {
       s = s.slice(0, last).trimEnd();
-      widgetPending = true;
+      widgetPending = streaming;
     } else {
-      s = s + "\n```";
+      s = `${s}\n\`\`\``;
     }
   }
-  if (streaming) {
-    // 末尾孤立的标题符/列表符/引用符先藏起来，避免裸露
-    s = s.replace(/(^|\n)\s*(#{1,6}|[-*+>]|\d+\.)\s*$/, "$1");
-    const lastLine = s.slice(s.lastIndexOf("\n") + 1);
-    const bold = (lastLine.match(/\*\*/g) ?? []).length;
-    if (bold % 2 === 1) s += "**";
-    s = s.replace(/(^|[^*])\*$/, "$1");
+  const raw: Segment[] = [];
+  const re = /```suanle\s*([\s\S]*?)```/g;
+  let lastIdx = 0;
+  let m: RegExpExecArray | null;
+  let wi = 0;
+  while ((m = re.exec(s))) {
+    if (m.index > lastIdx) raw.push({ kind: "md", text: s.slice(lastIdx, m.index) });
+    raw.push({ kind: "widget", raw: m[1].trim(), idx: wi++ });
+    lastIdx = m.index + m[0].length;
   }
-  // 标题统一降级，保持对话版面从容
-  s = s.replace(/^#{1,2}\s+/gm, "### ");
-  return { text: s, widgetPending };
+  if (lastIdx < s.length) raw.push({ kind: "md", text: s.slice(lastIdx) });
+  const segments = raw
+    .map((seg, i): Segment => (seg.kind === "md" ? { kind: "md", text: tidyMarkdown(seg.text, streaming && i === raw.length - 1) } : seg))
+    .filter((seg) => seg.kind === "widget" || seg.text.trim().length > 0);
+  return { segments, widgetPending };
 }
 
-/** 发送给模型的历史：去掉画像标签与推演，只保留正文 */
+/** 对话版面规范：标题降为加粗、去掉裸露的标记符，流式时用 remend 补齐 */
+export function tidyMarkdown(input: string, streaming: boolean): string {
+  let s = input.replace(/\r/g, "");
+  s = s.replace(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/gm, (_m, t: string) => `**${t.replace(/\*\*/g, "").trim()}**`);
+  s = s.replace(/^\s{0,3}#{1,6}\s*$/gm, "");
+  s = s.replace(/^\s*(\*{3,}|-{3,}|_{3,})\s*$/gm, "---");
+  if (streaming) {
+    s = s.replace(/(^|\n)\s*(#{1,6}|[-*+>]|\d+[.)、])\s*$/, "$1");
+    s = remend(s);
+  }
+  return s.trim();
+}
+
+/** 发送给模型的历史：去掉画像标签与推演笔记 */
 export function stripForHistory(raw: string): string {
-  const p = parseAssistant(raw, false);
-  return p.body;
+  return parseAssistant(raw, false).body;
 }
 
-/** 复制用纯文本 */
+/** 复制 / 分享用纯文本 */
 export function plainText(body: string): string {
   return body
     .replace(/```suanle[\s\S]*?```/g, "")
+    .replace(/```[\s\S]*?```/g, "")
     .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1$2")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/^>\s?/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-export function extractWidget(body: string): { widget: string; [k: string]: unknown } | null {
-  const m = body.match(/```suanle\s*([\s\S]*?)```/);
-  if (!m) return null;
-  try {
-    return JSON.parse(m[1].trim());
-  } catch {
-    return null;
-  }
+/** 取出回复里的「算了」箴言（最后一个引用块） */
+export function letgoLine(body: string): string | null {
+  const quotes = body.match(/^>\s?.+$/gm);
+  if (!quotes?.length) return null;
+  return quotes[quotes.length - 1].replace(/^>\s?/, "").replace(/\*\*/g, "").trim() || null;
 }
