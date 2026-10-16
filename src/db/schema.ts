@@ -1,19 +1,42 @@
-import { integer, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
-/** 随喜 / 长明灯 记录（只记心意，不存隐私） */
-export const tips = pgTable("tips", {
-  id: serial("id").primaryKey(),
-  anonId: varchar("anon_id", { length: 64 }).notNull(),
-  kind: varchar("kind", { length: 32 }).notNull(), // tip | lamp
-  item: varchar("item", { length: 64 }).notNull(),
-  amountCents: integer("amount_cents").notNull(),
-  note: text("note"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+/** 「算了」计数：只记次数，不记内容 */
+export const letgoEvents = pgTable(
+  "letgo_events",
+  {
+    id: serial("id").primaryKey(),
+    anonId: text("anon_id").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("letgo_events_created_idx").on(t.createdAt)],
+);
 
-/** “算了”事件：只计数，不保存任何文字 */
-export const letgos = pgTable("letgos", {
-  id: serial("id").primaryKey(),
-  anonId: varchar("anon_id", { length: 64 }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+/** 随喜与长明灯 */
+export const orders = pgTable(
+  "orders",
+  {
+    id: text("id").primaryKey(),
+    anonId: text("anon_id").notNull().default(""),
+    kind: text("kind").notNull(),
+    tier: text("tier").notNull(),
+    amountCents: integer("amount_cents").notNull().default(0),
+    channel: text("channel").notNull().default("wechat"),
+    status: text("status").notNull().default("claimed"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("orders_anon_idx").on(t.anonId)],
+);
+
+/** 算力账本 */
+export const usageLog = pgTable(
+  "usage_log",
+  {
+    id: serial("id").primaryKey(),
+    anonId: text("anon_id").notNull().default(""),
+    kind: text("kind").notNull().default("chat"),
+    tokens: integer("tokens").notNull().default(0),
+    model: text("model").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("usage_log_anon_idx").on(t.anonId, t.createdAt)],
+);

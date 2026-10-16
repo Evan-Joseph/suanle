@@ -16,25 +16,16 @@ export const TRIGRAM_LINES: Record<Trigram, [number, number, number]> = {
   坤: [0, 0, 0],
 };
 
-export const TRIGRAM_IMAGE: Record<Trigram, string> = {
-  乾: "天",
-  兑: "泽",
-  离: "火",
-  震: "雷",
-  巽: "风",
-  坎: "水",
-  艮: "山",
-  坤: "地",
-};
+export const TRIGRAM_IMAGE: Record<Trigram, string> = { 乾: "天", 兑: "泽", 离: "火", 震: "雷", 巽: "风", 坎: "水", 艮: "山", 坤: "地" };
 
 export interface Hexagram {
   no: number;
-  name: string; // 短名
-  full: string; // 全名
+  name: string;
+  full: string;
   upper: Trigram;
   lower: Trigram;
-  gist: string; // 生活化一句
-  letgo: string; // 算了箴言
+  gist: string;
+  letgo: string;
 }
 
 const RAW: [string, Trigram, Trigram, string, string][] = [
@@ -129,7 +120,7 @@ export function hexLines(h: Hexagram): number[] {
   return [...TRIGRAM_LINES[h.lower], ...TRIGRAM_LINES[h.upper]];
 }
 
-/** 一次掷三枚铜钱：字=2，背=3；6 老阴 7 少阳 8 少阴 9 老阳 */
+/** 一次掷三枚铜钱：字 = 2，背 = 3；和为 6 老阴、7 少阳、8 少阴、9 老阳 */
 export function tossThree(): { coins: number[]; sum: number } {
   const coins = [0, 1, 2].map(() => (Math.random() < 0.5 ? 2 : 3));
   return { coins, sum: coins.reduce((a, b) => a + b, 0) };
@@ -149,15 +140,16 @@ export function resolveCast(sums: number[], question?: string): CastResult {
   const changedLines = sums.map((s) => (s === 9 ? 0 : s === 6 ? 1 : s === 7 ? 1 : 0));
   const primary = hexagramFromLines(lines);
   const changed = moving.length ? hexagramFromLines(changedLines) : null;
-  return { sums, primary, changed, moving, question };
+  return { sums, primary, changed, moving, question: question?.trim() || undefined };
 }
 
-const YAO_NAMES = ["初", "二", "三", "四", "五", "上"];
+export const YAO_NAMES = ["初", "二", "三", "四", "五", "上"];
+
 export function castToText(r: CastResult): string {
-  const mv = r.moving.length ? `动爻：${r.moving.map((m) => YAO_NAMES[m - 1] + "爻").join("、")}` : "六爻安静，无动爻";
+  const mv = r.moving.length ? `动爻在${r.moving.map((m) => YAO_NAMES[m - 1] + "爻").join("、")}` : "六爻安静，没有动爻";
   return [
     r.question ? `我想问：${r.question}` : "我心里默念了一件事，",
-    `摇出来是 **${r.primary.full}**${r.changed ? ` → 变 **${r.changed.full}**` : ""}（${mv}）。`,
+    `摇出来是 **${r.primary.full}**${r.changed ? `，变 **${r.changed.full}**` : ""}（${mv}）。`,
     "帮我解解这一卦？",
   ].join("\n");
 }
@@ -166,38 +158,41 @@ export function castToText(r: CastResult): string {
 
 export interface TarotCard {
   id: number;
+  roman: string;
   name: string;
   en: string;
-  glyph: string;
   up: string;
   rev: string;
 }
 
-export const TAROT: TarotCard[] = [
-  { id: 0, name: "愚者", en: "The Fool", glyph: "🎒", up: "新的开始，带着好奇出发", rev: "冲动莽撞，先看清脚下" },
-  { id: 1, name: "魔术师", en: "The Magician", glyph: "✦", up: "资源齐备，动手就能成", rev: "能力空转，别光说不做" },
-  { id: 2, name: "女祭司", en: "The High Priestess", glyph: "☾", up: "相信直觉，答案在心里", rev: "想太多，被情绪蒙住眼" },
-  { id: 3, name: "皇后", en: "The Empress", glyph: "❀", up: "丰盛滋养，好好爱自己", rev: "过度付出，忘了自己" },
-  { id: 4, name: "皇帝", en: "The Emperor", glyph: "♜", up: "建立秩序，掌握主导", rev: "控制欲强，太过僵硬" },
-  { id: 5, name: "教皇", en: "The Hierophant", glyph: "⚿", up: "遵循传统，向前辈请教", rev: "打破陈规，走自己的路" },
-  { id: 6, name: "恋人", en: "The Lovers", glyph: "♡", up: "真心的选择与连接", rev: "关系失衡，价值观分歧" },
-  { id: 7, name: "战车", en: "The Chariot", glyph: "➶", up: "意志坚定，一路向前", rev: "方向混乱，力不从心" },
-  { id: 8, name: "力量", en: "Strength", glyph: "∞", up: "温柔的坚韧，以柔克刚", rev: "自我怀疑，内耗疲惫" },
-  { id: 9, name: "隐士", en: "The Hermit", glyph: "🕯", up: "独处沉淀，向内寻找", rev: "过度封闭，该出门走走" },
-  { id: 10, name: "命运之轮", en: "Wheel of Fortune", glyph: "☸", up: "转机到来，顺势而为", rev: "暂时低谷，轮子还会转" },
-  { id: 11, name: "正义", en: "Justice", glyph: "⚖", up: "公平因果，理性决断", rev: "失衡不公，别苛责自己" },
-  { id: 12, name: "倒吊人", en: "The Hanged Man", glyph: "⟟", up: "换个角度，暂停也是前进", rev: "无谓牺牲，及时止损" },
-  { id: 13, name: "死神", en: "Death", glyph: "❋", up: "结束与新生，旧篇章翻页", rev: "抗拒改变，困在原地" },
-  { id: 14, name: "节制", en: "Temperance", glyph: "⚱", up: "平衡调和，刚刚好就好", rev: "失去节奏，过犹不及" },
-  { id: 15, name: "恶魔", en: "The Devil", glyph: "⛓", up: "欲望与执念的束缚", rev: "挣脱枷锁，看清诱惑" },
-  { id: 16, name: "高塔", en: "The Tower", glyph: "⚡", up: "突变打破幻象，破而后立", rev: "危机缓和，躲过一劫" },
-  { id: 17, name: "星星", en: "The Star", glyph: "✧", up: "希望与疗愈，慢慢好起来", rev: "暂时失望，光还在" },
-  { id: 18, name: "月亮", en: "The Moon", glyph: "☽", up: "迷雾与不安，别信焦虑", rev: "真相浮现，雾要散了" },
-  { id: 19, name: "太阳", en: "The Sun", glyph: "☀", up: "明朗喜悦，一切向好", rev: "小小阴云，晒晒就干" },
-  { id: 20, name: "审判", en: "Judgement", glyph: "♫", up: "觉醒召唤，重新出发", rev: "自我批判，放过自己" },
-  { id: 21, name: "世界", en: "The World", glyph: "◯", up: "圆满完成，一个周期落幕", rev: "差最后一步，别泄气" },
+const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
+
+const TAROT_RAW: [string, string, string, string][] = [
+  ["愚者", "The Fool", "新的开始，带着好奇出发", "冲动莽撞，先看清脚下"],
+  ["魔术师", "The Magician", "资源齐备，动手就能成", "能力空转，别光说不做"],
+  ["女祭司", "The High Priestess", "相信直觉，答案在心里", "想太多，被情绪蒙住眼"],
+  ["皇后", "The Empress", "丰盛滋养，好好爱自己", "过度付出，忘了自己"],
+  ["皇帝", "The Emperor", "建立秩序，掌握主导", "控制欲强，太过僵硬"],
+  ["教皇", "The Hierophant", "遵循传统，向前辈请教", "打破陈规，走自己的路"],
+  ["恋人", "The Lovers", "真心的选择与连接", "关系失衡，价值观分歧"],
+  ["战车", "The Chariot", "意志坚定，一路向前", "方向混乱，力不从心"],
+  ["力量", "Strength", "温柔的坚韧，以柔克刚", "自我怀疑，内耗疲惫"],
+  ["隐士", "The Hermit", "独处沉淀，向内寻找", "过度封闭，该出门走走"],
+  ["命运之轮", "Wheel of Fortune", "转机到来，顺势而为", "暂时低谷，轮子还会转"],
+  ["正义", "Justice", "公平因果，理性决断", "失衡不公，别苛责自己"],
+  ["倒吊人", "The Hanged Man", "换个角度，暂停也是前进", "无谓牺牲，及时止损"],
+  ["死神", "Death", "结束与新生，旧篇章翻页", "抗拒改变，困在原地"],
+  ["节制", "Temperance", "平衡调和，刚刚好就好", "失去节奏，过犹不及"],
+  ["恶魔", "The Devil", "欲望与执念的束缚", "挣脱枷锁，看清诱惑"],
+  ["高塔", "The Tower", "突变打破幻象，破而后立", "危机缓和，躲过一劫"],
+  ["星星", "The Star", "希望与疗愈，慢慢好起来", "暂时失望，光还在"],
+  ["月亮", "The Moon", "迷雾与不安，别信焦虑", "真相浮现，雾要散了"],
+  ["太阳", "The Sun", "明朗喜悦，一切向好", "小小阴云，晒晒就干"],
+  ["审判", "Judgement", "觉醒召唤，重新出发", "自我批判，放过自己"],
+  ["世界", "The World", "圆满完成，一个周期落幕", "差最后一步，别泄气"],
 ];
 
+export const TAROT: TarotCard[] = TAROT_RAW.map(([name, en, up, rev], id) => ({ id, roman: ROMAN[id], name, en, up, rev }));
 export const TAROT_POSITIONS = ["此刻的你", "卡住你的", "可以试试"];
 
 export interface TarotDraw {
@@ -215,28 +210,195 @@ export function shuffledDeck(): number[] {
 }
 
 export function tarotToText(d: TarotDraw): string {
-  const lines = d.cards.map((c, i) => {
-    const card = TAROT[c.id];
-    return `${TAROT_POSITIONS[i]}：**${card.name}**${c.reversed ? "（逆位）" : "（正位）"}`;
-  });
+  const lines = d.cards.map((c, i) => `${TAROT_POSITIONS[i]}：**${TAROT[c.id].name}**${c.reversed ? "（逆位）" : "（正位）"}`);
   return [d.question ? `我想问：${d.question}` : "我抽了三张塔罗，", ...lines, "你帮我看看？"].join("\n");
 }
 
-/* ───────────────────────── 八字 / 星座 ───────────────────────── */
+/* ───────────────────────── 生辰 / 八字 ───────────────────────── */
 
-export interface BaziResult {
-  pillars: { label: string; gz: string; wx: string }[];
-  dayMaster: string;
-  dayMasterWx: string;
-  wuxing: Record<string, number>;
-  shengxiao: string;
-  lunarText: string;
-  zodiac: string;
-  nayin: string;
-  hourKnown: boolean;
+export const GAN_WX: Record<string, string> = { 甲: "木", 乙: "木", 丙: "火", 丁: "火", 戊: "土", 己: "土", 庚: "金", 辛: "金", 壬: "水", 癸: "水" };
+export const ZHI_WX: Record<string, string> = { 子: "水", 丑: "土", 寅: "木", 卯: "木", 辰: "土", 巳: "火", 午: "火", 未: "土", 申: "金", 酉: "金", 戌: "土", 亥: "水" };
+export const WX_COLOR: Record<string, string> = { 木: "#6f8f5e", 火: "#c4553a", 土: "#a9844a", 金: "#8a9099", 水: "#4f6d86" };
+export const WX_ORDER = ["木", "火", "土", "金", "水"];
+
+export const SHICHEN = [
+  { label: "子时", range: "23:00–00:59", hour: 0 },
+  { label: "丑时", range: "01:00–02:59", hour: 2 },
+  { label: "寅时", range: "03:00–04:59", hour: 4 },
+  { label: "卯时", range: "05:00–06:59", hour: 6 },
+  { label: "辰时", range: "07:00–08:59", hour: 8 },
+  { label: "巳时", range: "09:00–10:59", hour: 10 },
+  { label: "午时", range: "11:00–12:59", hour: 12 },
+  { label: "未时", range: "13:00–14:59", hour: 14 },
+  { label: "申时", range: "15:00–16:59", hour: 16 },
+  { label: "酉时", range: "17:00–18:59", hour: 18 },
+  { label: "戌时", range: "19:00–20:59", hour: 20 },
+  { label: "亥时", range: "21:00–22:59", hour: 22 },
+];
+
+export function normalizeGender(g?: string | null): "男" | "女" | undefined {
+  if (!g) return undefined;
+  if (/女|female|^f$/i.test(g)) return "女";
+  if (/男|male|^m$/i.test(g)) return "男";
+  return undefined;
 }
 
-const GAN_WX: Record<string, string> = { 甲: "木", 乙: "木", 丙: "火", 丁: "火", 戊: "土", 己: "土", 庚: "金", 辛: "金", 壬: "水", 癸: "水" };
+export interface SolarCalibration {
+  city: string;
+  longitude: number;
+  offsetMinutes: number;
+  originalBirth: string;
+  calibratedBirth: string;
+  applied: boolean;
+}
+
+/** 常见城市经度（用于真太阳时换算，东经120度为基准） */
+export const CITY_LONGITUDES: Record<string, number> = {
+  北京: 116.4,
+  上海: 121.47,
+  广州: 113.26,
+  深圳: 114.05,
+  成都: 104.06,
+  重庆: 106.55,
+  杭州: 120.15,
+  南京: 118.8,
+  武汉: 114.31,
+  西安: 108.94,
+  天津: 117.2,
+  苏州: 120.58,
+  郑州: 113.62,
+  长沙: 112.93,
+  东莞: 113.75,
+  佛山: 113.12,
+  宁波: 121.55,
+  青岛: 120.38,
+  沈阳: 123.43,
+  合肥: 117.23,
+  昆明: 102.71,
+  福州: 119.3,
+  厦门: 118.08,
+  哈尔滨: 126.63,
+  济南: 117.0,
+  大连: 121.62,
+  长春: 125.32,
+  温州: 120.7,
+  石家庄: 114.51,
+  贵阳: 106.71,
+  南宁: 108.37,
+  常州: 119.97,
+  泉州: 118.68,
+  南昌: 115.86,
+  金华: 119.65,
+  无锡: 120.31,
+  烟台: 121.45,
+  海口: 110.32,
+  三亚: 109.51,
+  乌鲁木齐: 87.62,
+  兰州: 103.82,
+  呼和浩特: 111.67,
+  银川: 106.23,
+  西宁: 101.78,
+  拉萨: 91.13,
+  香港: 114.17,
+  澳门: 113.54,
+  台北: 121.56,
+  高雄: 120.31,
+};
+
+export function findCityLongitude(name?: string | null): { name: string; longitude: number } | null {
+  if (!name || typeof name !== "string") return null;
+  const clean = name.trim().replace(/[省市特别行政区县区]/g, "");
+  if (!clean) return null;
+  for (const [k, v] of Object.entries(CITY_LONGITUDES)) {
+    if (clean.includes(k) || k.includes(clean)) return { name: k, longitude: v };
+  }
+  return null;
+}
+
+/** 计算真太阳时偏差（经度时差 + 均时差 Equation of Time） */
+export function calculateSolarTimeOffset(
+  longitude: number,
+  month = 6,
+  day = 15,
+): { longitudeOffsetMin: number; equationOfTimeMin: number; totalOffsetMin: number } {
+  const longitudeOffsetMin = (longitude - 120) * 4;
+  const daysBeforeMonth = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  const dayOfYear = (daysBeforeMonth[Math.max(0, Math.min(11, month - 1))] ?? 0) + day;
+  const b = (2 * Math.PI * (dayOfYear - 81)) / 365;
+  const equationOfTimeMin = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
+  const totalOffsetMin = Math.round(longitudeOffsetMin + equationOfTimeMin);
+  return {
+    longitudeOffsetMin: Math.round(longitudeOffsetMin * 10) / 10,
+    equationOfTimeMin: Math.round(equationOfTimeMin * 10) / 10,
+    totalOffsetMin,
+  };
+}
+
+export interface ParsedBirth {
+  y: number;
+  m: number;
+  d: number;
+  h: number;
+  mi: number;
+  hourKnown: boolean;
+  solarCalibration?: SolarCalibration;
+}
+
+/** birth: "YYYY-MM-DD" 或 "YYYY-MM-DD HH:mm"；可选城市名校准真太阳时 */
+export function parseBirth(birth?: string | null, city?: string | null): ParsedBirth | null {
+  if (!birth) return null;
+  const mt = String(birth).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})(?:\D+(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (!mt) return null;
+  const y = +mt[1];
+  const m = +mt[2];
+  const d = +mt[3];
+  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const hourKnown = mt[4] !== undefined;
+  const rawH = hourKnown ? Math.min(23, +mt[4]) : 12;
+  const rawMi = mt[5] ? Math.min(59, +mt[5]) : 0;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const rawStr = `${y}-${pad(m)}-${pad(d)}${hourKnown ? ` ${pad(rawH)}:${pad(rawMi)}` : ""}`;
+
+  const cityInfo = findCityLongitude(city);
+  if (hourKnown && cityInfo) {
+    const { totalOffsetMin } = calculateSolarTimeOffset(cityInfo.longitude, m, d);
+    const dObj = new Date(Date.UTC(y, m - 1, d, rawH, rawMi, 0));
+    const calObj = new Date(dObj.getTime() + totalOffsetMin * 60000);
+    const cy = calObj.getUTCFullYear();
+    const cm = calObj.getUTCMonth() + 1;
+    const cd = calObj.getUTCDate();
+    const ch = calObj.getUTCHours();
+    const cmi = calObj.getUTCMinutes();
+    const calStr = `${cy}-${pad(cm)}-${pad(cd)} ${pad(ch)}:${pad(cmi)}`;
+    return {
+      y: cy,
+      m: cm,
+      d: cd,
+      h: ch,
+      mi: cmi,
+      hourKnown,
+      solarCalibration: {
+        city: cityInfo.name,
+        longitude: cityInfo.longitude,
+        offsetMinutes: totalOffsetMin,
+        originalBirth: rawStr,
+        calibratedBirth: calStr,
+        applied: true,
+      },
+    };
+  }
+
+  return { y, m, d, h: rawH, mi: rawMi, hourKnown };
+}
+
+/** 紫微排盘的时辰序号：0 早子 … 11 亥 · 12 晚子 */
+export function timeIndexOf(hour: number, known: boolean): number {
+  if (!known) return 6;
+  if (hour === 23) return 12;
+  if (hour === 0) return 0;
+  return Math.floor((hour + 1) / 2);
+}
 
 export function zodiacOf(m: number, d: number): string {
   const signs = ["摩羯座", "水瓶座", "双鱼座", "白羊座", "金牛座", "双子座", "巨蟹座", "狮子座", "处女座", "天秤座", "天蝎座", "射手座", "摩羯座"];
@@ -244,146 +406,104 @@ export function zodiacOf(m: number, d: number): string {
   return d < edges[m - 1] ? signs[m - 1] : signs[m];
 }
 
-/** birth: "YYYY-MM-DD" 或 "YYYY-MM-DD HH:mm" */
-export function parseBirth(birth?: string | null): { y: number; m: number; d: number; h: number; mi: number; hourKnown: boolean } | null {
-  if (!birth) return null;
-  const mt = birth.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})(?:\D+(\d{1,2})(?::(\d{1,2}))?)?/);
-  if (!mt) return null;
-  const y = +mt[1], m = +mt[2], d = +mt[3];
-  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
-  const hourKnown = mt[4] !== undefined;
-  return { y, m, d, h: hourKnown ? Math.min(23, +mt[4]) : 12, mi: mt[5] ? Math.min(59, +mt[5]) : 0, hourKnown };
+export interface Pillar {
+  label: string;
+  gz: string;
+  gan: string;
+  zhi: string;
+  wx: string;
+  shishen: string;
+  nayin: string;
 }
 
-export function computeBazi(birth?: string | null): BaziResult | null {
-  const p = parseBirth(birth);
+export interface DaYunStep {
+  gz: string;
+  startYear: number;
+  startAge: number;
+}
+
+export interface BaziResult {
+  pillars: Pillar[];
+  dayMaster: string;
+  dayMasterWx: string;
+  wuxing: Record<string, number>;
+  strongest: string;
+  weakest: string;
+  shengxiao: string;
+  lunarText: string;
+  zodiac: string;
+  nayin: string;
+  hourKnown: boolean;
+  dayun: DaYunStep[];
+  solarCalibration?: SolarCalibration;
+}
+
+export function computeBazi(birth?: string | null, gender?: string | null, city?: string | null): BaziResult | null {
+  const p = parseBirth(birth, city);
   if (!p) return null;
   try {
     const lunar = Solar.fromYmdHms(p.y, p.m, p.d, p.h, p.mi, 0).getLunar();
     const e = lunar.getEightChar();
-    const pillars = [
-      { label: "年柱", gz: e.getYear(), wx: e.getYearWuXing() },
-      { label: "月柱", gz: e.getMonth(), wx: e.getMonthWuXing() },
-      { label: "日柱", gz: e.getDay(), wx: e.getDayWuXing() },
-      { label: "时柱", gz: p.hourKnown ? e.getTime() : "未知", wx: p.hourKnown ? e.getTimeWuXing() : "" },
+    const mk = (label: string, gz: string, wx: string, shishen: string, nayin: string): Pillar => ({ label, gz, gan: gz.charAt(0), zhi: gz.charAt(1), wx, shishen, nayin });
+    const pillars: Pillar[] = [
+      mk("年柱", e.getYear(), e.getYearWuXing(), e.getYearShiShenGan(), e.getYearNaYin()),
+      mk("月柱", e.getMonth(), e.getMonthWuXing(), e.getMonthShiShenGan(), e.getMonthNaYin()),
+      mk("日柱", e.getDay(), e.getDayWuXing(), "日主", e.getDayNaYin()),
+      p.hourKnown ? mk("时柱", e.getTime(), e.getTimeWuXing(), e.getTimeShiShenGan(), e.getTimeNaYin()) : { label: "时柱", gz: "", gan: "", zhi: "", wx: "", shishen: "", nayin: "" },
     ];
     const wuxing: Record<string, number> = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
     pillars.forEach((pl) => {
-      for (const ch of String(pl.wx)) if (ch in wuxing) wuxing[ch] += 1;
+      for (const ch of pl.wx) if (ch in wuxing) wuxing[ch] += 1;
     });
-    const dayMaster: string = e.getDayGan();
+    const sorted = [...WX_ORDER].sort((a, b) => wuxing[b] - wuxing[a]);
+    let dayun: DaYunStep[] = [];
+    try {
+      dayun = e
+        .getYun(normalizeGender(gender) === "男" ? 1 : 0)
+        .getDaYun()
+        .filter((d) => d.getGanZhi())
+        .slice(0, 8)
+        .map((d) => ({ gz: d.getGanZhi(), startYear: d.getStartYear(), startAge: d.getStartAge() }));
+    } catch {
+      dayun = [];
+    }
+    const dayMaster = e.getDayGan();
     return {
       pillars,
       dayMaster,
       dayMasterWx: GAN_WX[dayMaster] ?? "",
       wuxing,
+      strongest: sorted[0],
+      weakest: sorted[sorted.length - 1],
       shengxiao: lunar.getYearShengXiao(),
       lunarText: `农历${lunar.getYearInGanZhi()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`,
       zodiac: zodiacOf(p.m, p.d),
       nayin: e.getYearNaYin(),
       hourKnown: p.hourKnown,
+      dayun,
+      solarCalibration: p.solarCalibration,
     };
   } catch {
     return null;
   }
 }
 
+export function baziBrief(b: BaziResult): string {
+  return `四柱 ${b.pillars.map((p) => `${p.label}${p.gz || "未知"}`).join(" ")}；日主${b.dayMaster}（${b.dayMasterWx}）；十神 ${b.pillars
+    .filter((p) => p.gz)
+    .map((p) => `${p.label.charAt(0)}${p.shishen}`)
+    .join(" ")}；五行 ${WX_ORDER.map((k) => k + b.wuxing[k]).join(" ")}（${b.strongest}最旺、${b.weakest}偏弱）；生肖${b.shengxiao}；${b.zodiac}；年柱纳音${b.nayin}${
+    b.dayun.length ? `；大运 ${b.dayun.map((d) => `${d.startAge}岁${d.gz}`).join(" ")}` : ""
+  }${b.hourKnown ? "" : "；时辰不详"}${b.solarCalibration ? `；真太阳时校准[${b.solarCalibration.city} ${b.solarCalibration.offsetMinutes >= 0 ? "+" : ""}${b.solarCalibration.offsetMinutes}分]` : ""}`;
+}
+
 export function baziToText(b: BaziResult, birth: string): string {
   return [
     `这是我的生辰：${birth}`,
-    `四柱：${b.pillars.map((p) => p.gz).join(" · ")}，日主 ${b.dayMaster}${b.dayMasterWx}`,
-    `五行：${Object.entries(b.wuxing).map(([k, v]) => `${k}${v}`).join(" ")}`,
+    `四柱：${b.pillars.map((p) => p.gz || "时辰不详").join(" · ")}，日主 ${b.dayMaster}${b.dayMasterWx}`,
+    `五行：${WX_ORDER.map((k) => `${k}${b.wuxing[k]}`).join(" ")}`,
     "帮我看看我是个什么样的人，最近该注意点什么？",
   ].join("\n");
-}
-
-/* ───────────────────────── 人生量化 K 线 ───────────────────────── */
-
-export interface Candle {
-  age: number;
-  year: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  pillar: string;
-  tag?: string;
-}
-
-export interface KLineResult {
-  candles: Candle[];
-  currentAge: number;
-  peak: Candle;
-  trough: Candle;
-}
-
-function hashSeed(str: string): () => number {
-  let h = 1779033703 ^ str.length;
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  return () => {
-    h = Math.imul(h ^ (h >>> 16), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    return ((h ^= h >>> 16) >>> 0) / 4294967296;
-  };
-}
-
-export function computeKLine(b: BaziResult, birthStr: string, maxAge = 88): KLineResult {
-  const p = parseBirth(birthStr) ?? { y: 1996, m: 6, d: 18, h: 12, mi: 0, hourKnown: false };
-  const rand = hashSeed(`${birthStr}:${b.dayMaster}`);
-  const thisYear = new Date().getFullYear();
-  const currentAge = Math.max(1, Math.min(maxAge, thisYear - p.y + 1));
-
-  const stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
-  const branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
-
-  const TAGS: Record<number, string> = {
-    18: "步入成人",
-    22: "初入世事",
-    25: "能量积聚",
-    30: "三十而立",
-    35: "事业转折",
-    40: "不惑自持",
-    48: "知天命前",
-    50: "知天命",
-    60: "耳顺花甲",
-  };
-
-  const candles: Candle[] = [];
-  let prevClose = 50 + Math.round((rand() - 0.5) * 12);
-
-  for (let age = 1; age <= maxAge; age++) {
-    const yr = p.y + age - 1;
-    const sIdx = (yr - 4) % 10;
-    const bIdx = (yr - 4) % 12;
-    const gz = stems[((sIdx % 10) + 10) % 10] + branches[((bIdx % 12) + 12) % 12];
-
-    const open = Math.max(15, Math.min(90, prevClose + Math.round((rand() - 0.5) * 6)));
-    const delta = Math.round((rand() - 0.48) * 16);
-    const close = Math.max(12, Math.min(95, open + delta));
-    const high = Math.min(98, Math.max(open, close) + Math.round(rand() * 8));
-    const low = Math.max(10, Math.min(open, close) - Math.round(rand() * 8));
-
-    let tag = TAGS[age];
-    if (!tag) {
-      if (close - open > 12) tag = "主升浪";
-      else if (open - close > 12) tag = "休整期";
-    }
-
-    candles.push({ age, year: yr, open, high, low, close, pillar: gz, tag });
-    prevClose = close;
-  }
-
-  let peak = candles[0];
-  let trough = candles[0];
-  for (const c of candles) {
-    if (c.high > peak.high) peak = c;
-    if (c.low < trough.low) trough = c;
-  }
-
-  return { candles, currentAge, peak, trough };
 }
 
 /* ───────────────────────── 今日黄历 ───────────────────────── */
@@ -392,7 +512,7 @@ const LUCKY_COLOR: Record<string, { name: string; hex: string }> = {
   木: { name: "竹青", hex: "#7d9a6f" },
   火: { name: "朱砂", hex: "#c4553a" },
   土: { name: "杏黄", hex: "#d4a35a" },
-  金: { name: "月白", hex: "#d6dde3" },
+  金: { name: "月白", hex: "#c9d3dc" },
   水: { name: "黛蓝", hex: "#3f5a73" },
 };
 
@@ -413,29 +533,48 @@ const DAILY_LINES = [
   "不想社交的日子，就当给灵魂充电。",
 ];
 
+const SMALL_THINGS = [
+  "把桌面收拾出一小块空地",
+  "给自己泡一杯热的",
+  "十一点前放下手机",
+  "走路去买一次早饭",
+  "给很久没联系的人发个表情",
+  "换一首没听过的歌",
+  "做完一件拖了很久的小事",
+  "晒十分钟太阳",
+  "认真吃一顿午饭，不看手机",
+  "开窗通风，深呼吸三次",
+  "洗个热水澡，什么都不想",
+  "写下今天一件小小的好事",
+  "开一小时勿扰模式",
+  "下楼转一圈再回来",
+];
+
 export interface Almanac {
   dateText: string;
   weekday: string;
   lunarText: string;
   ganzhi: string;
+  dayGz: string;
   yi: string[];
   ji: string[];
   jieqi: string;
+  chong: string;
+  sha: string;
   color: { name: string; hex: string };
   line: string;
+  small: string;
   dayWx: string;
 }
 
 export function todayAlmanac(date = new Date()): Almanac {
-  const solar = Solar.fromDate(date);
-  const lunar = solar.getLunar();
-  const dayGan: string = lunar.getDayGan();
+  const lunar = Solar.fromDate(date).getLunar();
+  const dayGan = lunar.getDayGan();
   const dayWx = GAN_WX[dayGan] ?? "土";
   const seed = date.getFullYear() * 400 + (date.getMonth() + 1) * 31 + date.getDate();
   let jieqi = "";
   try {
-    const prev = lunar.getPrevJieQi(true);
-    jieqi = prev ? prev.getName() : "";
+    jieqi = lunar.getPrevJieQi(true)?.getName() ?? "";
   } catch {
     jieqi = "";
   }
@@ -444,11 +583,35 @@ export function todayAlmanac(date = new Date()): Almanac {
     weekday: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][date.getDay()],
     lunarText: `${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`,
     ganzhi: `${lunar.getYearInGanZhi()}年 ${lunar.getMonthInGanZhi()}月 ${lunar.getDayInGanZhi()}日`,
-    yi: (lunar.getDayYi() as string[]).slice(0, 4),
-    ji: (lunar.getDayJi() as string[]).slice(0, 4),
+    dayGz: lunar.getDayInGanZhi(),
+    yi: lunar.getDayYi().slice(0, 5),
+    ji: lunar.getDayJi().slice(0, 5),
     jieqi,
+    chong: lunar.getDayChongDesc(),
+    sha: lunar.getDaySha(),
     color: LUCKY_COLOR[dayWx],
     line: DAILY_LINES[seed % DAILY_LINES.length],
+    small: SMALL_THINGS[(seed * 7) % SMALL_THINGS.length],
     dayWx,
+  };
+}
+
+export function yearGanzhi(year: number): { gz: string; shengxiao: string } {
+  const lunar = Solar.fromYmdHms(year, 7, 1, 12, 0, 0).getLunar();
+  return { gz: lunar.getYearInGanZhi(), shengxiao: lunar.getYearShengXiao() };
+}
+
+/* ───────────────────────── 工具 ───────────────────────── */
+
+export function hashSeed(str: string): () => number {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
   };
 }

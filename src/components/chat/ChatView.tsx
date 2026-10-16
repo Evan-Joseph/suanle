@@ -1,170 +1,196 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useApp, useUI, type Msg } from "@/lib/store";
-import { Icon, Logo } from "../ui";
-import MessageItem from "./Message";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, CalendarDays, Coins, History, Layers, MessageCircle, ScrollText, SquarePen } from "lucide-react";
+import { dayKey, lampActive, profileHint, todayUsage, useApp, useUI, type Msg } from "@/lib/store";
+import { greeting } from "@/lib/mock";
+import { compact, localAnalogy, NUDGE_TOKENS } from "@/lib/meter";
+import { Logo } from "../brand/Logo";
+import { Icon } from "../icons";
+import { IconButton } from "../ui";
 import Composer from "./Composer";
-import SessionDrawer from "./SessionDrawer";
-import Markdown from "./Markdown";
-import { introText, sendMessage } from "./engine";
+import MessageItem from "./Message";
+import { newChat, openWidget, sendMessage } from "./engine";
 
-const CHIPS_NEW = ["最近有点烦", "帮我摇一卦", "今天运势怎么样", "抽三张塔罗", "看看我的命盘"];
-const CHIPS_BACK = ["今天运势怎么样", "帮我摇一卦", "抽三张塔罗", "有件事想不通", "看看我的命盘"];
+function Welcome() {
+  const name = useApp((s) => s.profile.name);
+  const birth = useApp((s) => s.profile.birth);
+  const g = greeting(name);
+  const cards = [
+    { icon: MessageCircle, title: "聊聊心事", sub: "说出来就轻了", run: () => void sendMessage("最近心里有点乱，想找人说说。") },
+    { icon: Coins, title: "摇一卦", sub: "问一件具体的事", run: () => openWidget("coins") },
+    { icon: Layers, title: "三张塔罗", sub: "看看此刻的心境", run: () => openWidget("tarot") },
+    birth
+      ? { icon: ScrollText, title: "我的命盘", sub: "八字与大运", run: () => openWidget("bazi") }
+      : { icon: CalendarDays, title: "今日黄历", sub: "宜忌与小确定", run: () => openWidget("almanac") },
+  ];
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center px-6 pb-8 pt-4 text-center">
+      <div className="text-ink">
+        <Logo size={84} greet />
+      </div>
+      <h1 className="mt-6 font-song text-[25px] font-bold tracking-wide text-ink">{g.title}</h1>
+      <p className="mt-2.5 max-w-[320px] text-[14.5px] leading-relaxed text-ink-2">{g.sub}</p>
+      <div className="mt-8 grid w-full max-w-[360px] grid-cols-2 gap-2.5">
+        {cards.map((c, i) => (
+          <motion.button
+            key={c.title}
+            type="button"
+            onClick={c.run}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 + i * 0.06, duration: 0.32 }}
+            className="flex items-center gap-3 rounded-[20px] border border-line bg-card/80 p-3.5 text-left transition-transform active:scale-[0.97]"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-paper-2 text-ink">
+              <Icon as={c.icon} size={19} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[14px] font-semibold text-ink">{c.title}</span>
+              <span className="mt-0.5 block truncate text-[11.5px] text-mute">{c.sub}</span>
+            </span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Nudge() {
+  const tokens = useApp((s) => todayUsage(s));
+  const hint = useApp((s) => profileHint(s.profile));
+  const items = localAnalogy(tokens, hint, 2, 3);
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-4 rounded-[22px] border border-line bg-card/85 p-4">
+      <p className="text-[13.5px] leading-relaxed text-ink-2">
+        今天陪你聊了 <b className="font-semibold text-ink">{compact(tokens)}</b> 算力，差不多是{items.map((i) => i.text).join("、")}。要是觉得有点用，随喜一下，小馆的灯就一直亮着。
+      </p>
+      <div className="mt-3 flex items-center gap-2">
+        <button type="button" onClick={() => useUI.getState().open("tip", { from: "nudge" })} className="h-9 rounded-full bg-ink px-4 text-[13px] text-on-ink transition active:scale-95">
+          随喜一下
+        </button>
+        <button type="button" onClick={() => useApp.getState().dismissNudge()} className="h-9 rounded-full px-3 text-[13px] text-mute">
+          下次吧
+        </button>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function ChatView() {
-  const currentId = useApp((s) => s.currentId);
-  const session = useApp((s) => s.sessions.find((x) => x.id === s.currentId));
-  const name = useApp((s) => s.profile.name);
+  const session = useApp((s) => s.sessions.find((x) => x.id === s.currentId) ?? null);
   const live = useUI((s) => s.live);
-  const [drawer, setDrawer] = useState(false);
+  const [mountedAt] = useState(() => Date.now());
+  const lastTipAt = useApp((s) => s.merit.lastAt);
+  const nudgeDue = useApp((s) => todayUsage(s) >= NUDGE_TOKENS && s.nudgeDay !== dayKey() && !lampActive(s));
+  const showNudge = nudgeDue && mountedAt - lastTipAt > 3 * 86400000;
   const scrollRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const [showDown, setShowDown] = useState(false);
 
-  const messages: Msg[] = useMemo(() => session?.messages ?? [], [session]);
-  const liveHere = live && live.sessionId === currentId ? live : null;
-  const empty = messages.length === 0 && !liveHere;
-  const intro = useMemo(() => introText(), [name, currentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const messages = useMemo(() => session?.messages ?? [], [session]);
+  const liveHere = live && session && live.sessionId === session.id ? live : null;
+  const list: Msg[] = useMemo(
+    () => (liveHere ? [...messages, { id: liveHere.msgId, role: "assistant", content: liveHere.content, createdAt: liveHere.started, deep: liveHere.deep }] : messages),
+    [messages, liveHere],
+  );
+  const hasMsgs = messages.length > 0;
 
-  const toBottom = useCallback((smooth = false) => {
+  useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
-  }, []);
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [list.length, liveHere?.content]);
 
-  // 切换会话时回到底部
-  useLayoutEffect(() => {
+  useEffect(() => {
     stick.current = true;
-    toBottom();
-  }, [currentId, toBottom]);
-
-  // 新消息/流式时跟随（用户上滑阅读时不打扰）
-  useLayoutEffect(() => {
-    if (stick.current) toBottom();
-  }, [messages.length, liveHere?.content, toBottom]);
-
-  useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      if (stick.current) toBottom();
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [toBottom]);
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [session?.id]);
 
-  // 当用户发送时强制贴底
   useEffect(() => {
-    if (liveHere && !liveHere.content) {
+    const f = () => {
       stick.current = true;
-      toBottom(true);
-    }
-  }, [liveHere, toBottom]);
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }));
+    };
+    window.addEventListener("suanle:sent", f);
+    return () => window.removeEventListener("suanle:sent", f);
+  }, []);
 
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
     stick.current = dist < 80;
-    setShowDown(dist > 300);
+    setShowDown(dist > 260);
   };
 
-  const lastIdx = messages.length - 1;
-  let prevUser = "";
-
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <header className="pt-safe relative z-10 shrink-0">
-        <div className="flex h-12 items-center justify-between px-2">
-          <button onClick={() => setDrawer(true)} className="grid h-10 w-10 place-items-center rounded-full text-ink active:bg-black/5" aria-label="会话列表">
-            <Icon name="menu" size={22} />
-          </button>
+        <div className="flex h-12 items-center px-1.5">
+          <IconButton label="聊过的事" onClick={() => useUI.getState().open("sessions")}>
+            <Icon as={History} size={20} />
+          </IconButton>
           <div className="min-w-0 flex-1 px-2 text-center">
-            {session && !empty ? (
-              <div className="anim-fade-in truncate text-[15px] font-medium">
-                <span className="mr-1">{session.emoji}</span>
-                {session.title}
-              </div>
+            {hasMsgs && session ? (
+              <div className="truncate text-[15px] font-semibold text-ink">{session.title}</div>
             ) : (
-              <div className="font-song text-[16px] font-bold tracking-[0.2em]">算了</div>
+              <div className="inline-flex items-center gap-1.5 text-ink">
+                <Logo size={20} mood="still" />
+                <span className="font-song text-[16px] font-bold tracking-wider">算了</span>
+              </div>
             )}
           </div>
-          <button
-            onClick={() => useApp.getState().setCurrent(null)}
-            className="grid h-10 w-10 place-items-center rounded-full text-ink active:bg-black/5"
-            aria-label="新的对话"
-          >
-            <Icon name="plus" size={22} />
-          </button>
+          <IconButton label="新对话" onClick={newChat} disabled={!hasMsgs}>
+            <Icon as={SquarePen} size={20} />
+          </IconButton>
         </div>
       </header>
-
-      <div ref={scrollRef} onScroll={onScroll} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {empty ? (
-          <div className="flex min-h-full flex-col px-4 pb-4">
-            <div className="flex flex-1 flex-col items-center justify-center pt-6 text-center">
-              <div className="anim-breathe text-ink">
-                <Logo size={88} blink />
-              </div>
-              <div className="mt-4 font-song text-[26px] font-bold tracking-[0.3em]">算了</div>
-              <div className="mt-1 text-[13px] tracking-[0.25em] text-mute">算一算，然后，算了。</div>
-            </div>
-            <div className="anim-fade-up mt-8 flex gap-2.5" style={{ animationDelay: "0.15s" }}>
-              <div className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-line bg-white">
-                <Logo size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <Markdown text={intro} msgId="intro" widgets="hidden" />
-              </div>
-            </div>
-            <div className="anim-fade-up no-scrollbar -mx-4 mt-5 flex gap-2 overflow-x-auto px-4 pb-1" style={{ animationDelay: "0.3s" }}>
-              {(name ? CHIPS_BACK : CHIPS_NEW).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => void sendMessage(c)}
-                  className="shrink-0 rounded-full border border-line bg-white/80 px-3.5 py-2 text-[13.5px] text-ink-2 shadow-sm transition active:scale-95"
-                >
-                  {c}
-                </button>
+      <div className="relative min-h-0 flex-1">
+        <div ref={scrollRef} onScroll={onScroll} className="no-scrollbar absolute inset-0 overflow-y-auto overscroll-contain">
+          {hasMsgs && session ? (
+            <div className="space-y-6 pb-5 pt-2">
+              {list.map((m, i) => (
+                <MessageItem
+                  key={m.id}
+                  msg={m}
+                  sessionId={session.id}
+                  isLast={i === list.length - 1}
+                  streaming={!!liveHere && m.id === liveHere.msgId}
+                  prevUser={
+                    m.role === "assistant"
+                      ? list
+                          .slice(0, i)
+                          .reverse()
+                          .find((x) => x.role === "user")?.content
+                      : undefined
+                  }
+                />
               ))}
+              {showNudge && !liveHere && <Nudge />}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-6 pb-6 pt-2">
-            {messages.map((m, i) => {
-              const pu = prevUser;
-              if (m.role === "user") prevUser = m.content;
-              return <MessageItem key={m.id} msg={m} sessionId={session!.id} isLast={i === lastIdx && !liveHere} prevUser={pu} />;
-            })}
-            {liveHere && (
-              <MessageItem
-                key={liveHere.msgId}
-                msg={{ id: liveHere.msgId, role: "assistant", content: liveHere.content, createdAt: liveHere.started }}
-                sessionId={liveHere.sessionId}
-                isLast
-                streaming
-              />
-            )}
-          </div>
-        )}
+          ) : (
+            <Welcome />
+          )}
+        </div>
+        <AnimatePresence>
+          {showDown && (
+            <motion.button
+              type="button"
+              aria-label="回到最新"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
+              className="absolute bottom-3 left-1/2 grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-card text-ink-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+            >
+              <Icon as={ArrowDown} size={17} />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
-
-      {showDown && (
-        <button
-          onClick={() => {
-            stick.current = true;
-            toBottom(true);
-          }}
-          className="anim-fade-in absolute bottom-[118px] left-1/2 z-10 grid h-9 w-9 -translate-x-1/2 place-items-center rounded-full border border-line bg-white text-ink-2 shadow-md"
-          aria-label="回到底部"
-        >
-          <Icon name="down" size={17} />
-        </button>
-      )}
-
       <Composer />
-      <SessionDrawer open={drawer} onClose={() => setDrawer(false)} />
     </div>
   );
 }
