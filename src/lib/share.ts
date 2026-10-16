@@ -1,6 +1,6 @@
 "use client";
 
-/** 生成「算了卡」长图：纸色底、Logo、正文与箴言，全部用 Canvas 绘制 */
+/** 生成「算了卡」长图：宣纸底色、Logo、排版正文与金句箴言，全部用 Canvas 绘制 */
 
 export interface CardInput {
   kicker?: string;
@@ -12,22 +12,64 @@ export interface CardInput {
 const W = 1080;
 const PAD = 96;
 
+/** 中文避头尾排版规则 (Kinsoku Shori) */
+const NO_START = "，。、；：！？）》】”’—…";
+const NO_END = "（《【“‘";
+
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  if (!text) return [];
   const out: string[] = [];
-  for (const para of text.split(/\n+/)) {
-    let line = "";
-    for (const ch of para) {
-      const test = line + ch;
-      if (ctx.measureText(test).width > maxW && line) {
-        out.push(line);
-        line = ch;
-      } else line = test;
+  for (const para of text.split(/\n/)) {
+    if (!para.trim()) {
+      out.push("");
+      continue;
     }
-    if (line) out.push(line);
-    out.push("");
+    let cur = "";
+    for (let i = 0; i < para.length; i++) {
+      const ch = para[i];
+      const test = cur + ch;
+      if (ctx.measureText(test).width > maxW && cur) {
+        if (NO_START.includes(ch) && cur.length > 1) {
+          const prev = cur[cur.length - 1];
+          cur = cur.slice(0, -1);
+          out.push(cur);
+          cur = prev + ch;
+        } else if (NO_END.includes(cur[cur.length - 1])) {
+          const prev = cur[cur.length - 1];
+          cur = cur.slice(0, -1);
+          out.push(cur);
+          cur = prev + ch;
+        } else {
+          out.push(cur);
+          cur = ch;
+        }
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) out.push(cur);
   }
   while (out.length && out[out.length - 1] === "") out.pop();
   return out;
+}
+
+function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  if (typeof ctx.roundRect === "function") {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 function drawLogo(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) {
@@ -36,7 +78,14 @@ function drawLogo(ctx: CanvasRenderingContext2D, x: number, y: number, size: num
   ctx.translate(x, y);
   ctx.scale(s, s);
   ctx.fillStyle = color;
-  for (const cx of [248, 560]) for (const cy of [248, 356, 464]) ctx.fillRect(cx, cy, 216, 74);
+  // 左三横、右三横，带柔和圆角
+  for (const cx of [248, 560]) {
+    for (const cy of [248, 356, 464]) {
+      drawRoundRect(ctx, cx, cy, 216, 74, 16);
+      ctx.fill();
+    }
+  }
+  // 底部微笑圆弧
   ctx.strokeStyle = color;
   ctx.lineWidth = 64;
   ctx.lineCap = "round";
@@ -47,75 +96,164 @@ function drawLogo(ctx: CanvasRenderingContext2D, x: number, y: number, size: num
   ctx.restore();
 }
 
-export async function renderCard(input: CardInput): Promise<string> {
+export async function renderCard(rawInput: CardInput): Promise<string> {
   const serif = '"Songti SC", "Noto Serif SC", "Source Han Serif SC", "STSong", serif';
   const sans = '-apple-system, "PingFang SC", "Noto Sans SC", sans-serif';
+
+  // 1. 防御性去重：若正文包含或完全等于箴言，避免在同一卡片中连续复读
+  let bodyText = (rawInput.body || "").trim();
+  const lineText = (rawInput.line || "").trim();
+  if (lineText && bodyText) {
+    if (bodyText === lineText) {
+      bodyText = "";
+    } else if (bodyText.includes(lineText)) {
+      bodyText = bodyText.replace(lineText, "").trim();
+    }
+  }
+
+  const isQuoteOnly = !bodyText && !!lineText;
+
   const measure = document.createElement("canvas").getContext("2d");
   if (!measure) throw new Error("canvas");
-  measure.font = `400 40px ${serif}`;
-  const bodyLines = wrap(measure, input.body, W - PAD * 2).slice(0, 16);
-  measure.font = `600 44px ${serif}`;
-  const lineLines = input.line ? wrap(measure, input.line, W - PAD * 2 - 80).slice(0, 4) : [];
 
-  const H = Math.max(1350, 520 + bodyLines.length * 68 + (lineLines.length ? lineLines.length * 64 + 140 : 0) + 260);
+  let bodyLines: string[] = [];
+  let lineLines: string[] = [];
+
+  if (isQuoteOnly) {
+    measure.font = `600 50px ${serif}`;
+    lineLines = wrap(measure, lineText, W - PAD * 2 - 120);
+  } else {
+    measure.font = `400 38px ${serif}`;
+    bodyLines = wrap(measure, bodyText, W - PAD * 2).slice(0, 16);
+    if (lineText) {
+      measure.font = `600 42px ${serif}`;
+      lineLines = wrap(measure, lineText, W - PAD * 2 - 84).slice(0, 4);
+    }
+  }
+
+  // 2. 精确计算卡片视觉高度（黄金比例，消除大面积无序留白）
+  const headerH = 260 + (rawInput.kicker ? 54 : 0) + (rawInput.title ? 74 : 0);
+  let contentH = 0;
+  if (isQuoteOnly) {
+    contentH = lineLines.length * 80 + 140;
+  } else {
+    contentH = bodyLines.reduce((acc, l) => acc + (l ? 64 : 28), 0);
+    if (lineLines.length) {
+      contentH += 40 + (lineLines.length * 64 + 72);
+    }
+  }
+  const footerH = 200;
+  const H = Math.max(1020, Math.min(1600, headerH + contentH + footerH + 40));
+
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("canvas");
 
-  ctx.fillStyle = "#FAF9F6";
+  // 宣纸色底
+  ctx.fillStyle = "#FAF8F5";
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "#E8E3D9";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(40, 40, W - 80, H - 80);
 
-  drawLogo(ctx, W / 2 - 70, 104, 140, "#2B2B2B");
-  let y = 300;
+  // 双层雅致边框
+  ctx.strokeStyle = "#E7E2D6";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(36, 36, W - 72, H - 72);
+  ctx.strokeStyle = "rgba(231,226,214,0.45)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(46, 46, W - 92, H - 92);
+
+  // 品牌 Logo
+  drawLogo(ctx, W / 2 - 64, 88, 128, "#2B2825");
+
+  let y = 250;
   ctx.textAlign = "center";
-  if (input.kicker) {
-    ctx.fillStyle = "#958F86";
-    ctx.font = `400 30px ${sans}`;
-    ctx.fillText(input.kicker, W / 2, y);
-    y += 64;
+  if (rawInput.kicker) {
+    ctx.fillStyle = "#8F897F";
+    ctx.font = `500 27px ${sans}`;
+    ctx.fillText(rawInput.kicker, W / 2, y);
+    y += 54;
   }
-  if (input.title) {
-    ctx.fillStyle = "#2B2B2B";
-    ctx.font = `700 52px ${serif}`;
-    ctx.fillText(input.title.slice(0, 18), W / 2, y);
-    y += 80;
+  if (rawInput.title) {
+    ctx.fillStyle = "#2B2825";
+    ctx.font = `700 48px ${serif}`;
+    ctx.fillText(rawInput.title.slice(0, 18), W / 2, y);
+    y += 74;
   }
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#3a3733";
-  ctx.font = `400 40px ${serif}`;
-  for (const l of bodyLines) {
-    if (l) ctx.fillText(l, PAD, y);
-    y += l ? 68 : 30;
+
+  // 垂直居中补偿：让较短内容自然舒展在中间
+  const remainingSpace = H - footerH - y - contentH;
+  if (remainingSpace > 30) {
+    y += Math.floor(remainingSpace * 0.36);
+  } else {
+    y += 24;
   }
-  if (lineLines.length) {
-    y += 50;
-    const boxH = lineLines.length * 64 + 60;
-    ctx.fillStyle = "rgba(196,85,58,0.07)";
-    ctx.fillRect(PAD, y, W - PAD * 2, boxH);
+
+  if (isQuoteOnly) {
+    // 纯金句模式：典雅大字
+    const boxW = W - PAD * 2;
+    const boxH = lineLines.length * 80 + 100;
+    ctx.fillStyle = "rgba(196,85,58,0.06)";
+    drawRoundRect(ctx, PAD, y, boxW, boxH, 24);
+    ctx.fill();
+
+    // 朱砂红微弧装饰条
     ctx.fillStyle = "#C4553A";
-    ctx.fillRect(PAD, y, 6, boxH);
-    ctx.fillStyle = "#2B2B2B";
-    ctx.font = `600 44px ${serif}`;
+    drawRoundRect(ctx, PAD + 2, y + 16, 6, boxH - 32, 3);
+    ctx.fill();
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#2B2825";
+    ctx.font = `600 48px ${serif}`;
     let ly = y + 74;
     for (const l of lineLines) {
-      ctx.fillText(l, PAD + 44, ly);
-      ly += 64;
+      ctx.fillText(l, PAD + 48, ly);
+      ly += 80;
     }
-    y += boxH;
+  } else {
+    // 问答正文
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#383430";
+    ctx.font = `400 38px ${serif}`;
+    for (const l of bodyLines) {
+      if (l) ctx.fillText(l, PAD, y);
+      y += l ? 64 : 28;
+    }
+
+    // 结尾箴言高亮小卡
+    if (lineLines.length) {
+      y += 36;
+      const boxW = W - PAD * 2;
+      const boxH = lineLines.length * 64 + 68;
+      ctx.fillStyle = "rgba(196,85,58,0.065)";
+      drawRoundRect(ctx, PAD, y, boxW, boxH, 20);
+      ctx.fill();
+
+      ctx.fillStyle = "#C4553A";
+      drawRoundRect(ctx, PAD + 2, y + 12, 6, boxH - 24, 3);
+      ctx.fill();
+
+      ctx.fillStyle = "#22201D";
+      ctx.font = `600 42px ${serif}`;
+      let ly = y + 66;
+      for (const l of lineLines) {
+        ctx.fillText(l, PAD + 42, ly);
+        ly += 64;
+      }
+    }
   }
+
+  // 底部落款与日期
   ctx.textAlign = "center";
-  ctx.fillStyle = "#2B2B2B";
-  ctx.font = `700 40px ${serif}`;
-  ctx.fillText("算了 · Suanle", W / 2, H - 150);
-  ctx.fillStyle = "#958F86";
-  ctx.font = `400 28px ${sans}`;
+  ctx.fillStyle = "#2B2825";
+  ctx.font = `700 36px ${serif}`;
+  ctx.fillText("算了 · Suanle", W / 2, H - 128);
+
+  ctx.fillStyle = "#9C958B";
+  ctx.font = `400 25px ${sans}`;
   const d = new Date();
-  ctx.fillText(`算一算，然后，算了。 · ${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`, W / 2, H - 100);
+  ctx.fillText(`算一算，然后，算了。 · ${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`, W / 2, H - 84);
+
   return canvas.toDataURL("image/png");
 }
 

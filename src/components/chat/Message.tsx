@@ -138,7 +138,18 @@ function Assistant({ msg, sessionId, isLast, streaming, prevUser }: { msg: Msg; 
             <ActionBtn
               icon={Share2}
               label="做成卡片"
-              onClick={() => useUI.getState().open("share", { kicker: prevUser ? `关于「${prevUser.slice(0, 16)}」` : "算了说", body: plainText(p.body).replace(/^>.*$/gm, "").slice(0, 300), line: letgoLine(p.body) })}
+              onClick={() => {
+                const quote = letgoLine(p.body);
+                let cleanBody = plainText(p.body);
+                if (quote && cleanBody.includes(quote)) {
+                  cleanBody = cleanBody.replace(quote, "").replace(/\n\s*\n\s*$/, "").trim();
+                }
+                useUI.getState().open("share", {
+                  kicker: prevUser ? `关于「${prevUser.slice(0, 16)}」` : "算了说",
+                  body: cleanBody.slice(0, 300),
+                  line: quote,
+                });
+              }}
             />
           </div>
           {msg.tokens ? (

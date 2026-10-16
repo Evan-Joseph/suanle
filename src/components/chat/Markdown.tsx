@@ -38,9 +38,9 @@ function SuanleCard({ raw }: { raw: string }) {
 
   const handleShare = () => {
     useUI.getState().open("share", {
-      kicker: "算了说",
+      kicker: "算了 · 箴言",
       line: text,
-      body: text,
+      body: "",
     });
   };
 
