@@ -1,10 +1,8 @@
 "use client";
 
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
 
-/** 生成「算了卡」长图：宣纸底色、Logo、排版正文、金句箴言与平台二维码，全部用 Canvas 绘制 */
+/** 生成「算了卡」长图：宣纸底色、Logo、排版正文与金句箴言，全部用 Canvas 绘制 */
 
 export interface CardInput {
   kicker?: string;
@@ -16,44 +14,25 @@ export interface CardInput {
 const W = 1080;
 const PAD = 96;
 
-function createQrImage(url: string, size: number): Promise<HTMLImageElement> {
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    try {
-      const svg = renderToStaticMarkup(
-        React.createElement(QRCodeSVG, {
-          value: url,
-          size,
-          level: "M",
-          fgColor: "#2B2825",
-          bgColor: "#FAF8F5",
-        })
-      );
-      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-      const blobUrl = URL.createObjectURL(blob);
-      const img = new Image();
-      img.onload = () => {
-        resolve(img);
-        URL.revokeObjectURL(blobUrl);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(blobUrl);
-        reject(new Error("QR image load failed"));
-      };
-      img.src = blobUrl;
-    } catch (err) {
-      reject(err);
-    }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
   });
 }
 
 /** 中文避头尾排版规则 (Kinsoku Shori) */
-
 const NO_START = "，。、；：！？）》】”’—…";
 const NO_END = "（《【“‘";
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
   if (!text) return [];
   const out: string[] = [];
+  const HANGING_MARGIN = 38; // 标点悬挂容差，符合宋体版刻与现代出版规范，杜绝孤立标点
+
   for (const para of text.split(/\n/)) {
     if (!para.trim()) {
       out.push("");
@@ -63,12 +42,28 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string
     for (let i = 0; i < para.length; i++) {
       const ch = para[i];
       const test = cur + ch;
-      if (ctx.measureText(test).width > maxW && cur) {
+      const testW = ctx.measureText(test).width;
+
+      if (testW > maxW && cur) {
+        // 1. 若当前字符是避头标点且在悬挂容差范围内，直接附着在行末
+        if (NO_START.includes(ch) && testW <= maxW + HANGING_MARGIN) {
+          cur = test;
+          continue;
+        }
+
+        // 2. 若超出容差且是避头标点，连同前方关联标点/文字一同换行
         if (NO_START.includes(ch) && cur.length > 1) {
-          const prev = cur[cur.length - 1];
-          cur = cur.slice(0, -1);
-          out.push(cur);
-          cur = prev + ch;
+          let pullCount = 1;
+          while (
+            pullCount < cur.length &&
+            (NO_START.includes(cur[cur.length - pullCount]) || NO_END.includes(cur[cur.length - pullCount]))
+          ) {
+            pullCount++;
+          }
+          const keep = cur.slice(0, -pullCount);
+          const pulled = cur.slice(-pullCount);
+          out.push(keep);
+          cur = pulled + ch;
         } else if (NO_END.includes(cur[cur.length - 1])) {
           const prev = cur[cur.length - 1];
           cur = cur.slice(0, -1);
@@ -177,7 +172,7 @@ export async function renderCard(rawInput: CardInput): Promise<string> {
       contentH += 40 + (lineLines.length * 64 + 72);
     }
   }
-  const footerH = 240;
+  const footerH = 250;
   const H = Math.max(1080, Math.min(1680, headerH + contentH + footerH + 40));
 
   const canvas = document.createElement("canvas");
@@ -278,54 +273,83 @@ export async function renderCard(rawInput: CardInput): Promise<string> {
     }
   }
 
-  // 底部落款分割线
+  // 底部落款、官方链接与二维码 (带流导流与品牌识别)
+  const footerY = H - 250;
+  // 浅色隔断虚线
+  ctx.save();
   ctx.strokeStyle = "rgba(231,226,214,0.7)";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([8, 6]);
   ctx.beginPath();
-  ctx.moveTo(PAD, H - 220);
-  ctx.lineTo(W - PAD, H - 220);
+  ctx.moveTo(PAD, footerY);
+  ctx.lineTo(W - PAD, footerY);
   ctx.stroke();
+  ctx.restore();
 
-  // 左侧：品牌落款与传播信息
+  // 左侧文字与官方入口
+  const d = new Date();
+  const dateStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+
   ctx.textAlign = "left";
   ctx.fillStyle = "#2B2825";
   ctx.font = `700 36px ${serif}`;
-  ctx.fillText("算了 · Suanle", PAD, H - 162);
+  ctx.fillText("算了 · Suanle", PAD, footerY + 54);
 
-  ctx.fillStyle = "#7A7368";
-  ctx.font = `400 24px ${sans}`;
-  ctx.fillText("算一算，然后，算了。", PAD, H - 120);
+  ctx.fillStyle = "#6E685E";
+  ctx.font = `500 24px ${sans}`;
+  ctx.fillText("算一算，然后，算了。", PAD, footerY + 98);
 
-  const d = new Date();
-  const dateStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
   ctx.fillStyle = "#9C958B";
   ctx.font = `400 21px ${sans}`;
-  ctx.fillText(`www.suanle.cc · ${dateStr}`, PAD, H - 80);
+  ctx.fillText(`长按或扫码 · 来和老朋友聊聊 ｜ ${dateStr}`, PAD, footerY + 140);
 
-  // 右侧：导向平台的二维码 (高精度带宋韵外框)
+  ctx.fillStyle = "#C4553A";
+  ctx.font = `600 20px -apple-system, BlinkMacSystemFont, monospace`;
+  ctx.fillText("https://www.suanle.cc", PAD, footerY + 176);
+
+  // 右侧二维码
+  const qrSize = 136;
+  const qrX = W - PAD - qrSize;
+  const qrY = footerY + 28;
+
   try {
-    const qrSize = 120;
-    const qrX = W - PAD - qrSize;
-    const qrY = H - 200;
+    const qrDataUrl = await QRCode.toDataURL("https://www.suanle.cc/", {
+      margin: 1,
+      width: qrSize * 2,
+      color: { dark: "#2B2825", light: "#FAF8F5" },
+      errorCorrectionLevel: "M",
+    });
+    const qrImg = await loadImage(qrDataUrl);
 
-    // 二维码古典底框
+    // 二维码白底托盘与外框
     ctx.fillStyle = "#FAF8F5";
-    drawRoundRect(ctx, qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12);
+    drawRoundRect(ctx, qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, 10);
     ctx.fill();
-    ctx.strokeStyle = "#E7E2D6";
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(231,226,214,0.9)";
+    ctx.lineWidth = 1;
     ctx.stroke();
 
-    const qrImg = await createQrImage("https://www.suanle.cc/", qrSize);
     ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-    // 二维码微型说明
+    // 二维码中心小印章「算」
+    const sealSize = 26;
+    const sealX = qrX + (qrSize - sealSize) / 2;
+    const sealY = qrY + (qrSize - sealSize) / 2;
+    ctx.fillStyle = "#C4553A";
+    drawRoundRect(ctx, sealX, sealY, sealSize, sealSize, 4);
+    ctx.fill();
+    ctx.fillStyle = "#FAF8F5";
+    ctx.font = `700 16px ${serif}`;
     ctx.textAlign = "center";
-    ctx.fillStyle = "#8F897F";
-    ctx.font = `500 18px ${sans}`;
-    ctx.fillText("扫码问心", qrX + qrSize / 2, H - 52);
+    ctx.fillText("算", qrX + qrSize / 2, sealY + 19);
+
+    // 扫码提示标签
+    ctx.fillStyle = "#9C958B";
+    ctx.font = `400 17px ${sans}`;
+    ctx.textAlign = "center";
+    ctx.fillText("扫码解惑", qrX + qrSize / 2, qrY + qrSize + 24);
   } catch {
-    /* 降级只绘文字 */
+    /* 离线时静默退化 */
   }
 
   return canvas.toDataURL("image/png");

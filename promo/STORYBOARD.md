@@ -1,12 +1,9 @@
 # 《算了 · Suanle》品牌官方宣传片分镜与视听脚本 (Storyboard & Audiovisual Spec)
 
 > **品牌 Slogan**：**“算一算，然后，算了。”**  
-> **视频规格**：1920 × 1080 (16:9 宽屏) ｜ 60 FPS (推荐) 或 30 FPS ｜ 总长 50 秒 (3000 帧 @ 60FPS)  
-> **美学流派**：宋代极简主义 ｜ 东方禅意 ｜ 现代松弛感 ｜ 纸墨与微光质感  
-> **配乐母带**：`promo/assets/audio/bgm_suanle_zen.mp3`（古琴《阳关三叠》散音前奏 + 38 秒西藏颂钵长鸣）  
-> **拟音素材**：水滴入墨、青铜钱币翻落、纸张揉皱 ASMR、纸团落篓、朱砂钤印  
-> **实机素材**：1080P Retina 真机实录视频 (`promo/assets/video/*.mp4`) 与全套 UI 矢量资产  
-> **品牌 CTA**：片尾与分享卡全面集成官方二维码 (`suanle_qrcode.png`) 与官网链接 `https://www.suanle.cc/`
+> **视频规格**：1920 × 1080 (16:9 宽屏) ｜ 60 FPS (兼容 30 FPS) ｜ 总长 50 秒 (3000 Frames @ 60FPS / 1500 Frames @ 30FPS)  
+> **美学流派**：宋代极简主义 ｜ 东方禅意 ｜ 现代松弛感 ｜ 宣纸水墨与温润微光质感  
+> **声音设计**：清冽水滴入墨声、粗糙生宣摩擦声、温热茶汤落盏声、青铜钱币翻落碰撞声、纸团揉碎解压 ASMR、空灵沉浑西藏颂钵（Singing Bowl）长鸣
 
 ---
 
@@ -39,20 +36,20 @@
   > 算前程、算感情、算流年……  
   > 算那个总在深夜，敲打心房的问号。”
 - **声音设计 (SFX)**：
-  - 0s：古琴悠扬散音弱起入耳 (`bgm_suanle_zen.mp3`)；
-  - 1.8s：清冽的一滴水声入墨（`water_drop.mp3`）。
+  - 0s：清冽的一滴水声入墨（`promo/assets/audio/water_drop.mp3`）；
+  - 0s–8s：古琴悠扬散音弱起，伴随若有若无的深夜静谧雨滴声（`promo/assets/audio/bgm_suanle_zen.mp3`）。
 
 ---
 
 ### 第二幕：温茶与对坐 (The Tea Encounter & Product Core)
 - **时间与帧数**：8.0s – 20.0s (480 – 1200 帧 @ 60FPS / 240 – 600 帧 @ 30FPS)
-- **景别与运镜**：中景轻微三维透视（3D Perspective Tilt） $\rightarrow$ 手机界面平滑聚焦
+- **景别与运镜**：中景轻微三维透视俯视（3D Perspective Tilt） $\rightarrow$ 平滑移焦到手机界面（Rack Focus）
 - **引用素材**：
-  - 实录视频：`promo/assets/video/01_home_navigation.mp4`
-  - 高清界面：`promo/assets/ui_chat_view.png`
+  - 实录视频：`promo/assets/video/01_home_navigation.mp4`、`promo/assets/video/02_chat_consultation.mp4`
+  - 高清界面：`promo/assets/ui_chat_view.png`、`promo/assets/prod_mobile_home.png`
 - **画面内容**：
   - 墨韵散尽，画面平滑过渡到一张温润质感的素木茶案上；
-  - 一台极简精致的手机以微仰角轻悬浮在画面中央，真实展示《算了 · Suanle》的主界面；
+  - 一台极简精致的手机以微仰角轻悬浮在画面中央，真实展示《算了 · Suanle》的主界面与老友茶馆；
   - 界面如同一位多年老友温茶对坐，三枚青铜钱在屏幕中央如流星般翻转抛落，清脆碰撞后结出“天水讼”静卦；
   - 屏幕跳出充满温度与通透感的点拨文字：  
     *“天往上升，水往低流，这两样东西本就走不到一块——你心里正跟自己较劲呢。明天给脑子放半天假吧。”*
@@ -61,8 +58,9 @@
   > 只有一位为你温好热茶的老朋友。  
   > 懂八字、懂六爻，更懂你眼底未说出口的疲惫。”
 - **声音设计 (SFX)**：
-  - 13.2s：铜钱在木案上翻落回响的清脆金属震颤声（`coin_clatter.mp3`）；
-  - 古琴泛音绵延。
+  - 8s：温热茶水注入瓷盏的润泽声；
+  - 13.2s：铜钱在木案上翻落回响的清脆金属震颤声（`promo/assets/audio/coin_clatter.mp3`）；
+  - 17s：古琴单音悠扬泛音。
 
 ---
 
@@ -82,51 +80,54 @@
   > 你就会明白：起伏从来不是困局，而是生命的呼吸。  
   > 知命者，心自安。”
 - **声音设计 (SFX)**：
-  - 古琴滚拂音阶，伴随呼吸般微弱风铃声。
+  - 20s：如风拂竹林的柔和呼啸（Wind Chime Sweep）；
+  - 25s–30s：古琴滚拂流水音阶（`promo/assets/audio/bgm_suanle_zen.mp3`），随 K 线的爬升与跌落如水滴般错落共鸣。
 
 ---
 
 ### 第四幕：灵魂交互：揉掉它，丢进纸篓 (The Climax: Crumple & Let Go)
 - **时间与帧数**：32.0s – 44.0s (1920 – 2640 帧 @ 60FPS / 960 – 1320 帧 @ 30FPS) —— **全片最高潮**
-- **景别与运镜**：特写 $\rightarrow$ 镜头紧随抛物线追踪（Tracking Shot） $\rightarrow$ 纸篓落定静止
+- **景别与运镜**：视线水平特写 $\rightarrow$ 镜头紧随抛物线追踪（Tracking Shot） $\rightarrow$ 纸篓落定俯拍静止
 - **引用素材**：
   - 实录视频：`promo/assets/video/03_letgo_paper_crumple.mp4`
   - 高清界面：`promo/assets/ui_letgo_write.png`、`promo/assets/ui_letgo_ball.png`、`promo/assets/ui_letgo_done.png`
 - **画面内容**：
   - 画面切换至《算了》标志性的「算了」信笺界面；
-  - 信笺上墨迹微干，手写着一行心事：*“放不下昨晚的失眠与焦虑”*；
+  - 信笺上墨迹微干，写着一行真实心事：*“放不下昨晚的失眠与焦虑”*；
   - 点击“揉掉它”——整张信笺伴随着物理弹簧动效迅速收缩、褶皱扭曲、团聚成一颗带着细腻阴影与纸褶纹理的纸团；
-  - 纸团划过一道优美的抛物线，精准“咚”地落入画面右下方的竹编小纸篓中！纸篓轻轻震荡回弹，一切归于宁静；
+  - 纸团划过一道优美的抛物线，精准“咚”地落入画面右下方的竹编小纸篓中；
+  - 纸篓轻轻震荡回弹，一切归于宁静；
   - 屏幕正中缓缓浮现四个朱红墨字：**【揉掉它。算了。】**
 - **旁白文案 (VO)**：
   > “那些执念、纠结、睡不着的深夜……  
   > 写下来，揉成团，丢进纸篓。  
   > ——算了。”
 - **声音设计 (SFX)**：
-  - 34.5s：极度治愈与解压的纸张剧烈揉搓皱褶声（`paper_crumple.mp3` ASMR）；
-  - 37.2s：破风声；
-  - **38.0s 重中之重**：一声浑厚、空灵、余音回荡足足 6 秒的**西藏颂钵（Tibetan Singing Bowl）长鸣**（`singing_bowl_strike.mp3`），洗涤视听，全场寂静。
+  - 34.5s：极度治愈与解压的纸张剧烈揉搓皱褶声（`promo/assets/audio/paper_crumple.mp3` ASMR）；
+  - 37.2s：纸团落篓的沉实声（Soft Basket Thud）；
+  - **38.0s 重中之重**：一声浑厚、空灵、余音回荡足足 6 秒的**西藏颂钵（Tibetan Singing Bowl）长鸣**（`promo/assets/audio/singing_bowl_strike.mp3`），洗涤视听，全场静止。
 
 ---
 
 ### 第五幕：微光与释怀 (Resolution & End Card CTA)
 - **时间与帧数**：44.0s – 50.0s (2640 – 3000 帧 @ 60FPS / 1320 – 1500 帧 @ 30FPS)
-- **景别与运镜**：极简静止画面（Static Still Frame） $\rightarrow$ 浮动分享卡与官方二维码微光浮现
+- **景别与运镜**：极简静止画面（Static Still Frame） $\rightarrow$ 微光粒子呼吸与分享卡片轻悬浮
 - **引用素材**：
-  - 官方二维码：`promo/assets/suanle_qrcode.png` / `suanle_qrcode.svg`
-  - 分享卡实景：`promo/assets/video/04_share_card_with_qr.mp4`、`promo/assets/card_dialogue.png`
-  - 品牌标识：`promo/assets/logo.svg`
+  - 官方二维码：`promo/assets/suanle_qrcode.png` / `promo/assets/suanle_qrcode.svg`
+  - 实录视频：`promo/assets/video/04_share_card_with_qr.mp4`
+  - 分享卡图：`promo/assets/card_dialogue.png`、`promo/assets/card_aphorism.png`
+  - 品牌标识：`promo/assets/logo.svg` / `promo/assets/logo.png`
 - **画面内容**：
-  - 背景化为宁静的宣纸米色，一盏温暖的长明灯芯在角落静静摇曳；
+  - 背景化为宁静温润的生宣米色，一盏温暖的长明灯芯在角落静静摇曳；
   - 画面左侧：一枚古朴的朱砂印章以苍劲有力的宋体盖下：**【算了】**，Slogan 缓缓渐入：**“算一算，然后，算了。”**；
-  - 画面右侧：一枚精致古典宣纸外框包裹的官方二维码优雅浮现，下方清晰标注：**“扫码问心”**；
-  - 底部居中浮现产品访问地址：`https://www.suanle.cc/`。
+  - 画面右侧：精致宣纸底框包裹的平台官方二维码优雅浮现（内嵌朱砂红「算」印章），标注**“扫码解惑”**；
+  - 底部清晰显现产品访问地址：`https://www.suanle.cc/`。
 - **旁白文案 (VO)**：
   > “算了 · Suanle  
   > 算一算，然后，算了。”
 - **声音设计 (SFX)**：
-  - 44.0s：印章盖下的厚重定格声；
-  - 46.0s–50.0s：颂钵余音与微弱的风铃余韵缓缓淡出至寂静。
+  - 44.0s：印章盖下的厚重定格声（Seal Stamp Sound）；
+  - 46.0s–50.0s：颂钵余音与微弱的风铃余韵缓缓淡出至绝对寂静。
 
 ---
 

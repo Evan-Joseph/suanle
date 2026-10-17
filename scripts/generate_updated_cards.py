@@ -58,7 +58,7 @@ with sync_playwright() as p:
     )
     page = browser.new_page(viewport={"width": 1080, "height": 1920})
     page.goto("about:blank")
-    page.wait_for_timeout(500)
+    page.wait_for_timeout(300)
     
     for item in CARDS:
         fn = item["filename"]
@@ -73,6 +73,7 @@ with sync_playwright() as p:
             
             const NO_START = "，。、；：！？）》】”’—…";
             const NO_END = "（《【“‘";
+            const HANGING_MARGIN = 38;
             
             function wrap(ctx, text, maxW) {{
               if (!text) return [];
@@ -83,12 +84,24 @@ with sync_playwright() as p:
                 for (let i = 0; i < para.length; i++) {{
                   const ch = para[i];
                   const test = cur + ch;
-                  if (ctx.measureText(test).width > maxW && cur) {{
+                  const testW = ctx.measureText(test).width;
+                  if (testW > maxW && cur) {{
+                    if (NO_START.includes(ch) && testW <= maxW + HANGING_MARGIN) {{
+                      cur = test;
+                      continue;
+                    }}
                     if (NO_START.includes(ch) && cur.length > 1) {{
-                      const prev = cur[cur.length - 1];
-                      cur = cur.slice(0, -1);
-                      out.push(cur);
-                      cur = prev + ch;
+                      let pullCount = 1;
+                      while (
+                        pullCount < cur.length &&
+                        (NO_START.includes(cur[cur.length - pullCount]) || NO_END.includes(cur[cur.length - pullCount]))
+                      ) {{
+                        pullCount++;
+                      }}
+                      const keep = cur.slice(0, -pullCount);
+                      const pulled = cur.slice(-pullCount);
+                      out.push(keep);
+                      cur = pulled + ch;
                     }} else if (NO_END.includes(cur[cur.length - 1])) {{
                       const prev = cur[cur.length - 1];
                       cur = cur.slice(0, -1);
@@ -109,8 +122,21 @@ with sync_playwright() as p:
             }}
             
             function drawRoundRect(ctx, x, y, w, h, r) {{
+              if (typeof ctx.roundRect === "function") {{
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, r);
+                return;
+              }}
               ctx.beginPath();
-              ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
+              ctx.moveTo(x + r, y);
+              ctx.lineTo(x + w - r, y);
+              ctx.arcTo(x + w, y, x + w, y + r, r);
+              ctx.lineTo(x + w, y + h - r);
+              ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+              ctx.lineTo(x + r, y + h);
+              ctx.arcTo(x, y + h, x, y + h - r, r);
+              ctx.lineTo(x, y + r);
+              ctx.arcTo(x, y, x + r, y, r);
               ctx.closePath();
             }}
             
@@ -138,120 +164,154 @@ with sync_playwright() as p:
             
             const kicker = {json.dumps(d.get("kicker", ""))};
             const title = {json.dumps(d.get("title", ""))};
-            const body = {json.dumps(d.get("body", ""))};
-            const line = {json.dumps(d.get("line", ""))};
+            let bodyText = {json.dumps(d.get("body", ""))}.trim();
+            const lineText = {json.dumps(d.get("line", ""))}.trim();
+            
+            if (lineText && bodyText) {{
+              if (bodyText === lineText) {{
+                bodyText = "";
+              }} else if (bodyText.includes(lineText)) {{
+                bodyText = bodyText.replace(lineText, "").trim();
+              }}
+            }}
+            
+            const isQuoteOnly = !bodyText && !!lineText;
+            
+            const measure = document.createElement("canvas").getContext("2d");
+            measure.font = `400 38px ${{serif}}`;
+            const bodyLines = wrap(measure, bodyText, W - PAD * 2).slice(0, 16);
+            measure.font = `600 42px ${{serif}}`;
+            const lineLines = lineText ? wrap(measure, lineText, W - PAD * 2 - 84).slice(0, 4) : [];
+            
+            // 黄金高度动态计算
+            const headerH = 250 + (kicker ? 54 : 0) + (title ? 74 : 0);
+            let contentH = 0;
+            if (isQuoteOnly) {{
+              contentH = lineLines.length * 80 + 140;
+            }} else {{
+              contentH = bodyLines.reduce((acc, l) => acc + (l ? 64 : 28), 0);
+              if (lineLines.length) {{
+                contentH += 40 + (lineLines.length * 64 + 72);
+              }}
+            }}
+            const footerH = 250;
+            const H = Math.max(1050, Math.min(1600, headerH + contentH + footerH + 40));
             
             const canvas = document.createElement("canvas");
             canvas.width = W;
-            canvas.height = 1480;
+            canvas.height = H;
             const ctx = canvas.getContext("2d");
             
-            // 宣纸底色
+            // 宣纸色底
             ctx.fillStyle = "#FAF8F5";
-            ctx.fillRect(0, 0, W, 1480);
+            ctx.fillRect(0, 0, W, H);
             
-            // 宣纸边框
+            // 双层雅致边框
             ctx.strokeStyle = "#E7E2D6";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(36, 36, W - 72, 1480 - 72);
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(36, 36, W - 72, H - 72);
+            ctx.strokeStyle = "rgba(231,226,214,0.45)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(46, 46, W - 92, H - 92);
             
-            // 顶栏 Logo
-            drawLogo(ctx, PAD, 76, 68, "#2B2825");
-            ctx.fillStyle = "#9C958B";
-            ctx.font = `600 24px ${{sans}}`;
-            ctx.textAlign = "left";
-            ctx.fillText(kicker || "算了 · 随笔", PAD + 84, 118);
+            // 居中品牌 Logo
+            drawLogo(ctx, W / 2 - 64, 88, 128, "#2B2825");
             
-            // 朱砂小印章
-            const sealSize = 56;
-            const sealX = W - PAD - sealSize;
-            const sealY = 82;
-            ctx.fillStyle = "#C4553A";
-            drawRoundRect(ctx, sealX, sealY, sealSize, sealSize, 8);
-            ctx.fill();
-            ctx.fillStyle = "#FAF8F5";
-            ctx.font = `bold 26px ${{serif}}`;
+            let y = 250;
             ctx.textAlign = "center";
-            ctx.fillText("算了", sealX + sealSize / 2, sealY + sealSize / 2 + 9);
-            
-            let curY = 220;
+            if (kicker) {{
+              ctx.fillStyle = "#8F897F";
+              ctx.font = `500 27px ${{sans}}`;
+              ctx.fillText(kicker, W / 2, y);
+              y += 54;
+            }}
             if (title) {{
               ctx.fillStyle = "#2B2825";
               ctx.font = `700 48px ${{serif}}`;
-              ctx.textAlign = "left";
-              const titleLines = wrap(ctx, title, W - PAD * 2);
-              for (const tl of titleLines) {{
-                ctx.fillText(tl, PAD, curY);
-                curY += 68;
-              }}
-              curY += 24;
+              ctx.fillText(title.slice(0, 18), W / 2, y);
+              y += 74;
             }}
             
-            if (body) {{
-              ctx.fillStyle = "#4A443D";
-              ctx.font = `400 32px ${{serif}}`;
-              ctx.textAlign = "left";
-              const bodyLines = wrap(ctx, body, W - PAD * 2);
-              for (const bl of bodyLines) {{
-                if (!bl) {{ curY += 28; continue; }}
-                ctx.fillText(bl, PAD, curY);
-                curY += 56;
-              }}
-              curY += 36;
+            // 垂直居中舒展
+            const remainingSpace = H - footerH - y - contentH;
+            if (remainingSpace > 30) {{
+              y += Math.floor(remainingSpace * 0.36);
+            }} else {{
+              y += 24;
             }}
             
-            if (line) {{
-              ctx.fillStyle = "rgba(196,85,58,0.06)";
-              drawRoundRect(ctx, PAD, curY, W - PAD * 2, 140, 16);
+            // 正文
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#383430";
+            ctx.font = `400 38px ${{serif}}`;
+            for (const l of bodyLines) {{
+              if (l) ctx.fillText(l, PAD, y);
+              y += l ? 64 : 28;
+            }}
+            
+            // 箴言小卡
+            if (lineLines.length) {{
+              y += 36;
+              const boxW = W - PAD * 2;
+              const boxH = lineLines.length * 64 + 68;
+              ctx.fillStyle = "rgba(196,85,58,0.065)";
+              drawRoundRect(ctx, PAD, y, boxW, boxH, 20);
               ctx.fill();
-              ctx.strokeStyle = "rgba(196,85,58,0.35)";
-              ctx.lineWidth = 1.5;
-              ctx.stroke();
               
               ctx.fillStyle = "#C4553A";
-              ctx.font = `italic 600 30px ${{serif}}`;
-              ctx.textAlign = "left";
-              const quoteLines = wrap(ctx, line, W - PAD * 2 - 48);
-              let qy = curY + 54;
-              for (const ql of quoteLines) {{
-                ctx.fillText(ql, PAD + 24, qy);
-                qy += 44;
+              drawRoundRect(ctx, PAD + 2, y + 12, 6, boxH - 24, 3);
+              ctx.fill();
+              
+              ctx.fillStyle = "#22201D";
+              ctx.font = `600 42px ${{serif}}`;
+              let ly = y + 66;
+              for (const l of lineLines) {{
+                ctx.fillText(l, PAD + 42, ly);
+                ly += 64;
               }}
             }}
             
-            // 底部落款分割线
-            const H = 1480;
-            ctx.strokeStyle = "rgba(231,226,214,0.8)";
-            ctx.lineWidth = 1.5;
+            // 底部落款与二维码
+            const footerY = H - 250;
+            ctx.save();
+            ctx.strokeStyle = "rgba(231,226,214,0.7)";
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([8, 6]);
             ctx.beginPath();
-            ctx.moveTo(PAD, H - 240);
-            ctx.lineTo(W - PAD, H - 240);
+            ctx.moveTo(PAD, footerY);
+            ctx.lineTo(W - PAD, footerY);
             ctx.stroke();
+            ctx.restore();
             
-            // 左侧：品牌落款与传播信息
+            // 左侧品牌
             ctx.textAlign = "left";
             ctx.fillStyle = "#2B2825";
-            ctx.font = `700 38px ${{serif}}`;
-            ctx.fillText("算了 · Suanle", PAD, H - 175);
+            ctx.font = `700 36px ${{serif}}`;
+            ctx.fillText("算了 · Suanle", PAD, footerY + 54);
             
-            ctx.fillStyle = "#7A7368";
-            ctx.font = `400 26px ${{sans}}`;
-            ctx.fillText("算一算，然后，算了。", PAD, H - 130);
+            ctx.fillStyle = "#6E685E";
+            ctx.font = `500 24px ${{sans}}`;
+            ctx.fillText("算一算，然后，算了。", PAD, footerY + 98);
             
             ctx.fillStyle = "#9C958B";
-            ctx.font = `400 22px ${{sans}}`;
-            ctx.fillText("www.suanle.cc · 丙午年", PAD, H - 86);
+            ctx.font = `400 21px ${{sans}}`;
+            ctx.fillText("长按或扫码 · 来和老朋友聊聊 ｜ 丙午年", PAD, footerY + 140);
             
-            // 右侧：平台二维码
+            ctx.fillStyle = "#C4553A";
+            ctx.font = `600 20px -apple-system, BlinkMacSystemFont, monospace`;
+            ctx.fillText("https://www.suanle.cc", PAD, footerY + 176);
+            
+            // 右侧二维码
             const qrSize = 136;
             const qrX = W - PAD - qrSize;
-            const qrY = H - 215;
+            const qrY = footerY + 28;
             
+            // 白底托盘
             ctx.fillStyle = "#FAF8F5";
-            drawRoundRect(ctx, qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12);
+            drawRoundRect(ctx, qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, 10);
             ctx.fill();
-            ctx.strokeStyle = "#E7E2D6";
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "rgba(231,226,214,0.9)";
+            ctx.lineWidth = 1;
             ctx.stroke();
             
             const qrImg = document.createElement("img");
@@ -263,10 +323,23 @@ with sync_playwright() as p:
             }});
             ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
             
+            // 二维码中心小印章「算」
+            const sealSize = 26;
+            const sealX = qrX + (qrSize - sealSize) / 2;
+            const sealY = qrY + (qrSize - sealSize) / 2;
+            ctx.fillStyle = "#C4553A";
+            drawRoundRect(ctx, sealX, sealY, sealSize, sealSize, 4);
+            ctx.fill();
+            ctx.fillStyle = "#FAF8F5";
+            ctx.font = `700 16px ${{serif}}`;
             ctx.textAlign = "center";
-            ctx.fillStyle = "#8F897F";
-            ctx.font = `600 19px ${{sans}}`;
-            ctx.fillText("扫码问心", qrX + qrSize / 2, H - 52);
+            ctx.fillText("算", qrX + qrSize / 2, sealY + 19);
+            
+            // 扫码解惑
+            ctx.fillStyle = "#9C958B";
+            ctx.font = `400 17px ${{sans}}`;
+            ctx.textAlign = "center";
+            ctx.fillText("扫码解惑", qrX + qrSize / 2, qrY + qrSize + 24);
             
             return canvas.toDataURL("image/png");
         }})()
