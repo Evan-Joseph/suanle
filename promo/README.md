@@ -1,6 +1,6 @@
 # 《算了 · Suanle》宣传片素材仓库 (Promo Assets Manifest)
 
-本项目为《算了 · Suanle》（官网：`https://www.suanle.cc/` ｜ 仓库：`https://github.com/Evan-Joseph/suanle.git`）品牌宣传片的全量视听与品牌素材清单。所有文件均已提交至 GitHub 仓库（位于 `promo/assets/`），并同步映射至 Web 静态目录 `public/promo/`，方便 Remotion 等代码驱动视频引擎直接通过相对路径或 `staticFile()` 引用。
+本项目为《算了 · Suanle》（官网：`https://www.suanle.cc/`）品牌宣传片的全量视听与品牌素材清单。所有文件均已提交至 GitHub 仓库，并同步映射至生产环境 CDN，方便代码渲染引擎（如 Remotion）直接通过相对路径或网络 URL 引用。
 
 ---
 
