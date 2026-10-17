@@ -1,47 +1,144 @@
-# 《算了 · Suanle》60秒品牌电影级分镜脚本 (Master Storyboard)
-> **片名**：《算了：算一算，然后，算了。》 (Calculate, and then, Let It Go)  
-> **片长**：60秒 (工业标准 24fps / 电影宽画幅 2.39:1)  
-> **影调风格**：从现代都市冰冷焦虑冷灰，过渡至宋代温润纸本茶色，最终在破晓天光与水墨留白中释怀。  
-> **配音基调**：温润沉静、磁性内敛、有阅历的老友口吻（不宏大、不说教、不打鸡血、无免责申明）。
+# 《算了 · Suanle》品牌官方宣传片分镜与视听脚本 (Storyboard & Audiovisual Spec)
+
+> **品牌 Slogan**：**“算一算，然后，算了。”**  
+> **视频规格**：1920 × 1080 (16:9 宽屏) ｜ 30 FPS ｜ 总长 50 秒 (1500 Frames)  
+> **美学流派**：宋代极简主义 ｜ 东方禅意 ｜ 现代松弛感 ｜ 纸墨与微光质感  
+> **声音设计**：水滴入砚声、粗糙宣纸摩擦声、温热茶汤落盏声、青铜钱币翻落声、纸团揉碎声、空灵沉浑颂钵（Singing Bowl）长鸣
 
 ---
 
-## 完整分镜总表 (The Master Production Table)
+## 🎨 视觉调色板与材质基准 (Color Palette & Textures)
 
-| 镜头编号 | 时间码 | 景别 / 运镜 | 视觉焦点 (Visual Focus) | 旁白台词 (Voiceover / VO) | 音效设计 (Sound / Foley) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Shot 01** | 00:00 - 00:04 | 特写 (Extreme Close-Up) · 缓慢推进 | 深夜窗边，雨水划过玻璃，倒映着现代人疲惫出神的眼神与电脑幽蓝微光 | “这一年，你是不是也总在心里……跟自己较劲？” | 细密雨声敲击玻璃，低沉若隐若现的环境心跳重音 |
-| **Shot 02** | 00:04 - 00:09 | 微距 (Macro) · 手持微晃 | 手机屏幕上停留在深夜的备忘录，光标闪烁，指尖犹豫不决 | “反复琢磨那个没选的岔路，一遍遍问：为什么是我，怎么就成了这样。” | 键盘敲击后快速删除的细碎声，深夜室内的空旷风声 |
-| **Shot 03** | 00:09 - 00:14 | 特写转微距 · 极缓推拉 (Slow Push-in) | 沸水缓缓注入素白瓷杯，茶雾袅袅升起，光影瞬间由冷蓝转为温润宣纸暖色 | “其实你我都清楚，我们求签问卜，哪是为了什么未卜先知。” | 滚水注入瓷杯的温润水声，一声清幽悠扬的深山古刹磬音（Singing Bowl）荡开 |
-| **Shot 04** | 00:14 - 00:20 | 中景 (Medium Shot) · 轨道平移 | 素雅木桌上，三枚青铜开元通宝古钱在掌心微转，桌旁摆着一碗清茶 | “不过是心里那团乱麻实在解不开了，想找个老朋友……好好理一理。” | 掌心铜钱金属摩挲的微弱声响，古琴泛音清亮切入 |
-| **Shot 05** | 00:20 - 00:27 | 特写高速摄影 (Slow-mo 120fps) | 三枚铜钱掷出，在木质桌面上凌空翻滚、碰撞、旋转、落定，铜光闪烁 | “摇一卦，铜钱落定。卦象从来不决定命运，它只是一面镜子……” | 铜钱在桌面清脆悦耳的碰撞声（Ding-clack!），回音立体环绕 |
-| **Shot 06** | 00:27 - 00:33 | 俯拍微距 (Top-Down Macro) | 手机屏幕亮起：墨色勾勒的紫微星盘与起伏跌宕的人生运势 K 线缓缓流淌生成 | “……照出的，是你早就该下的决断。人生从不是一条单调向上的直线。” | 墨水滴入宣纸的轻微晕染声，舒缓温暖的弦乐渐入 |
-| **Shot 07** | 00:33 - 00:40 | 微距特写 · 快速跟焦 | 屏幕上划过温润如茶的解惑文字，目光随着字迹舒展，紧锁的眉头渐渐松开 | “低谷不是终局，只是在蓄力筑底。懂了顺逆，心便有了安顿的地方。” | 柔和翻页声，心跳音完全消退，古琴与现代钢琴交织 |
-| **Shot 08** | 00:40 - 00:46 | 特写 (Close-Up) · 动态捕捉 | 指尖在宣纸信笺上写下“放不下的执念”，随后双手果断将纸张揉起！纤维褶皱撕扯压缩成紧实纸团 | “那些放不下的遗憾、纠结、委屈与内耗……” | 极其逼真有力的宣纸褶皱爆裂声（Crisp Paper Crumple Foley） |
-| **Shot 09** | 00:46 - 00:52 | 侧跟镜头 (Tracking Shot) · 弧线运动 | 纸团划出优雅抛物线，撞击编织竹篓边缘，稳稳落入篓底 | “……写下来，揉成团，丢进纸篓里。” | 纸团撞击竹篓的“咚”声，接着是一声浑厚空灵的铜磬余音 |
-| **Shot 10** | 00:52 - 00:56 | 微距特写 · 静态锁焦 | 手机屏幕生成一张精致宣纸长图，一枚朱红金石印章沉稳盖下——“算了” | “顺境做事，逆境修心。算一算……” | 红泥印章按在宣纸上沉稳的“盖印”声，朱红墨色微渗 |
-| **Shot 11** | 00:56 - 01:00 | 远景淡入至纯白留白 (Fade to Light) | 晨光微熹，窗外远山如黛雨过天晴，主角倚窗端茶，嘴角浮现从容释怀的微笑。画面中央浮现品牌 Logo 与 Slogan | “……然后，算了。” | 晨鸟清鸣，微风拂动窗帘声，钢琴余音袅袅归于寂静 |
+| 色彩命名 | 色值 Hex | 情绪与语义 | 运用场景 |
+| :--- | :--- | :--- | :--- |
+| **生宣白 (Xuan White)** | `#FAF9F6` | 纯净、未沾尘染、留白呼应 | 画卷底色、主背景、信笺纸面 |
+| **徽墨黑 (Huizhou Ink)** | `#2B2B2B` | 沉敛、温和不刺眼、岁月沉淀 | 核心主文案、排版文字、水墨晕染 |
+| **朱砂红 (Cinnabar Red)** | `#C4553A` | 点化、顿悟、东方印信 | “算了”印章、强调关键词、关键转折点 |
+| **泥金色 (Antique Gold)** | `#A9844A` | 智慧、流金、大运起伏 | 人生 K 线运势浪潮、命盘五行亮点 |
+| **修竹青 (Bamboo Sage)** | `#74866A` | 生机、舒展、静心 | 铜钱静卦、竹编纸篓、生机指引 |
+| **晴岚灰 (Mist Gray)** | `#E8E3D9` | 边界、轻柔包容 | 手机浮动边框、虚线分隔、微光阴影 |
 
 ---
 
-## 针对 AI 视频生成模型 (Sora / Kling / Runway Gen-3) 关键镜头 Prompt
+## 🎬 五幕电影级分镜脚本 (The 5-Act Narrative Arc)
 
-### 镜头 01 (Shot 01)
-```text
-Cinematic 35mm film still, extreme close-up of a contemplative East Asian youth looking out of a rainy window at night. Cold blue atmospheric city reflections, soft raindrops sliding down glass in sharp focus. Moody chiaroscuro lighting, subtle melancholy, shallow depth of field, anamorphic lens flare, photorealistic, 4k.
-```
+### 第一幕：叩问与迷惘 (The Hook & Modern Anxiety)
+- **时间与帧数**：0.0s – 8.0s (Frames 0 – 240)
+- **景别与运镜**：微距特写（Macro Extreme Close-Up） $\rightarrow$ 缓慢纵深推入（Slow Dolly In）
+- **画面内容**：
+  - 一片带有天然微纤维质感的米白生宣纸上，一滴清透浓黑的徽墨从正上方滴落；
+  - 墨汁在生宣纤维间如烟雾般轻柔晕开，伴随着水墨散开，数行当代年轻人深夜最真实的叩问文字以极低透明度浮动显现：
+    - *“今年考研能上岸吗？”*
+    - *“换工作到底是对还是错？”*
+    - *“我的人生，为什么总在同一个坑里反复打转？”*
+- **旁白文案 (VO)**：
+  > “人这一生，为什么总想算一算？  
+  > 算前程、算感情、算流年……  
+  > 算那个总在深夜，敲打心房的问号。”
+- **声音设计 (SFX)**：
+  - 0s：清冽的一滴水声入墨（Water Drop Echo）；
+  - 2s–6s：深沉低缓的低音大提琴长音垫底，伴随若有若无的深夜雨滴声。
 
-### 镜头 05 (Shot 05 - 铜钱落桌)
-```text
-Macro 120fps slow-motion capture of three ancient Kaiyuan Tongbao bronze coins tumbling, bouncing, and spinning on a weathered zen wooden tea table. Warm golden side-lighting catching the metallic edges and patina. Shallow depth of field, tactile textures, cinematic motion blur, natural physics, ultra-detailed 8k.
-```
+---
 
-### 镜头 08 & 09 (Shot 08 & 09 - 揉纸投篓)
-```text
-Macro cinematic shot of hands crumpling a sheet of fine traditional Xuan rice paper with Chinese calligraphy into a tight paper ball. Dynamic paper fiber tension and tactile folds. Cut to slow motion arc of the paper ball flying through ambient morning sunlight into a minimal woven bamboo wastebasket, soft thud bounce. Photorealistic, Wabi-sabi aesthetics, 4k.
-```
+### 第二幕：温茶与对坐 (The Tea Encounter & Product Core)
+- **时间与帧数**：8.0s – 20.0s (Frames 240 – 600)
+- **景别与运镜**：中景轻微三维透视俯视（3D Perspective Tilt） $\rightarrow$ 平滑移焦到手机界面（Rack Focus）
+- **画面内容**：
+  - 墨韵散尽，画面平滑过渡到一张温润质感的素木茶案上；
+  - 一台极简精致的手机以微仰角轻悬浮在画面中央，屏幕中正呈现《算了 · Suanle》的主界面；
+  - 界面如同一位多年老友温茶对坐，三枚青铜钱在屏幕中央如流星般翻转抛落，清脆碰撞后结出“天水讼”静卦；
+  - 屏幕跳出充满温度与通透感的点拨文字：  
+    *“天往上升，水往低流，这两样东西本就走不到一块——你心里正跟自己较劲呢。明天给脑子放半天假吧。”*
+- **旁白文案 (VO)**：
+  > “但这里没有故弄玄虚的铁板神算，  
+  > 只有一位为你温好热茶的老朋友。  
+  > 懂八字、懂六爻，更懂你眼底未说出口的疲惫。”
+- **声音设计 (SFX)**：
+  - 8s：温热茶水注入瓷盏的润泽声；
+  - 13s：铜钱清脆在案上翻落回响的金属震颤声（Coin Clatter）；
+  - 17s：古琴单音悠扬泛音。
 
-### 镜头 10 (Shot 10 - 印章落款)
-```text
-Top-down macro shot of a traditional vermilion cinnabar stone seal pressing firmly onto fibrous rice paper, leaving a crisp, elegant Chinese seal imprint that reads "算了" (Suanle). Intricate ink texture bleeding subtly into paper fibers. Golden hour soft illumination, tranquil zen atmosphere, cinematic masterwork.
+---
+
+### 第三幕：人生如浪潮 (The Fortune K-Line)
+- **时间与帧数**：20.0s – 32.0s (Frames 600 – 960)
+- **景别与运镜**：全景横向移镜（Horizontal Dolly Tracking） $\rightarrow$ 动态图表延展
+- **画面内容**：
+  - 手机屏幕放大并展开为一幅壮阔写意的**「人生大运 K 线图谱」**；
+  - 泥金色的起伏曲线在宣纸长卷上如千里江山图般动态生长，标示出人生 0–100 岁的大运涨落与十二流月潮汐；
+  - 曲线掠过低谷与高峰，伴随呼吸般的光晕脉冲：
+    - *“起伏本是常态，何必困于一时？”*
+    - *“低谷蓄力，高峰尽兴。”*
+- **旁白文案 (VO)**：
+  > “看透了周期的潮涨潮落，  
+  > 你就会明白：起伏从来不是困局，而是生命的呼吸。  
+  > 知命者，心自安。”
+- **声音设计 (SFX)**：
+  - 20s：如风拂竹林的柔和呼啸（Wind Chime Sweep）；
+  - 25s–30s：钢琴音阶随 K 线的爬升与跌落如水滴般错落敲击。
+
+---
+
+### 第四幕：灵魂交互：揉掉它，丢进纸篓 (The Climax: Crumple & Let Go)
+- **时间与帧数**：32.0s – 44.0s (Frames 960 – 1320)
+- **景别与运镜**：视线水平特写 $\rightarrow$ 镜头紧随抛物线追踪（Tracking Shot） $\rightarrow$ 纸篓落定俯拍
+- **画面内容**：
+  - 画面切换至《算了》标志性的「算了」信笺界面；
+  - 信笺上墨迹微干，写着一行心事：*“放不下昨晚的失眠与焦虑”*；
+  - 瞬间，整张信笺伴随着物理弹簧动效迅速收缩、褶皱扭曲、团聚成一颗带着细腻阴影与纸褶纹理的纸团；
+  - 纸团划过一道优美的抛物线，精准“咚”地落入画面右下方的竹编小纸篓中；
+  - 纸篓轻轻震荡回弹，一切归于宁静；
+  - 屏幕正中缓缓浮现四个朱红墨字：**【揉掉它。算了。】**
+- **旁白文案 (VO)**：
+  > “那些执念、纠结、睡不着的深夜……  
+  > 写下来，揉成团，丢进纸篓。  
+  > ——算了。”
+- **声音设计 (SFX)**：
+  - 34s：极度治愈与解压的纸张剧烈揉搓皱褶声（Crinkling Paper ASMR）；
+  - 37s：纸团落篓的沉实声（Soft Basket Thud）；
+  - 38s：**重中之重**：一声浑厚、空灵、余音回荡足足 6 秒的**西藏颂钵（Tibetan Singing Bowl）长鸣**，洗涤视听，全场静止。
+
+---
+
+### 第五幕：微光与释怀 (Resolution & End Card)
+- **时间与帧数**：44.0s – 50.0s (Frames 1320 – 1500)
+- **景别与运镜**：极简静止画面（Static Still Frame） $\rightarrow$ 微光粒子呼吸
+- **画面内容**：
+  - 背景化为宁静的宣纸米色，一盏温暖的长明灯芯在角落静静摇曳；
+  - 画面正中央，一枚古朴的朱砂印章以苍劲有力的宋体盖下：**【算了】**；
+  - Slogan 缓缓渐入：**“算一算，然后，算了。”**；
+  - 底部浮现产品访问地址：`www.suanle.cc`。
+- **旁白文案 (VO)**：
+  > “算了 · Suanle  
+  > 算一算，然后，算了。”
+- **声音设计 (SFX)**：
+  - 44s：印章盖下的厚重定格声（Seal Stamp Sound）；
+  - 46s–50s：颂钵余音与微弱的风铃余韵缓缓淡出至寂静。
+
+---
+
+## 📐 动效物理参数推荐 (Spring Physics Specs for Remotion)
+
+```typescript
+// 纸团揉皱与收缩弹性
+export const crumpleSpring = {
+  damping: 14,
+  mass: 0.8,
+  stiffness: 120,
+};
+
+// 铜钱抛落震荡
+export const coinBounceSpring = {
+  damping: 10,
+  mass: 0.6,
+  stiffness: 180,
+};
+
+// 镜头平滑推入与转场
+export const cameraSmoothSpring = {
+  damping: 24,
+  mass: 1.2,
+  stiffness: 80,
+};
 ```
