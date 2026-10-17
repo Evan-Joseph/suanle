@@ -1,6 +1,10 @@
 "use client";
 
-/** 生成「算了卡」长图：宣纸底色、Logo、排版正文与金句箴言，全部用 Canvas 绘制 */
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { QRCodeSVG } from "qrcode.react";
+
+/** 生成「算了卡」长图：宣纸底色、Logo、排版正文、金句箴言与平台二维码，全部用 Canvas 绘制 */
 
 export interface CardInput {
   kicker?: string;
@@ -12,7 +16,38 @@ export interface CardInput {
 const W = 1080;
 const PAD = 96;
 
+function createQrImage(url: string, size: number): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    try {
+      const svg = renderToStaticMarkup(
+        React.createElement(QRCodeSVG, {
+          value: url,
+          size,
+          level: "M",
+          fgColor: "#2B2825",
+          bgColor: "#FAF8F5",
+        })
+      );
+      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        resolve(img);
+        URL.revokeObjectURL(blobUrl);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+        reject(new Error("QR image load failed"));
+      };
+      img.src = blobUrl;
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 /** 中文避头尾排版规则 (Kinsoku Shori) */
+
 const NO_START = "，。、；：！？）》】”’—…";
 const NO_END = "（《【“‘";
 
@@ -142,8 +177,8 @@ export async function renderCard(rawInput: CardInput): Promise<string> {
       contentH += 40 + (lineLines.length * 64 + 72);
     }
   }
-  const footerH = 200;
-  const H = Math.max(1020, Math.min(1600, headerH + contentH + footerH + 40));
+  const footerH = 240;
+  const H = Math.max(1080, Math.min(1680, headerH + contentH + footerH + 40));
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -243,16 +278,55 @@ export async function renderCard(rawInput: CardInput): Promise<string> {
     }
   }
 
-  // 底部落款与日期
-  ctx.textAlign = "center";
+  // 底部落款分割线
+  ctx.strokeStyle = "rgba(231,226,214,0.7)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, H - 220);
+  ctx.lineTo(W - PAD, H - 220);
+  ctx.stroke();
+
+  // 左侧：品牌落款与传播信息
+  ctx.textAlign = "left";
   ctx.fillStyle = "#2B2825";
   ctx.font = `700 36px ${serif}`;
-  ctx.fillText("算了 · Suanle", W / 2, H - 128);
+  ctx.fillText("算了 · Suanle", PAD, H - 162);
 
-  ctx.fillStyle = "#9C958B";
-  ctx.font = `400 25px ${sans}`;
+  ctx.fillStyle = "#7A7368";
+  ctx.font = `400 24px ${sans}`;
+  ctx.fillText("算一算，然后，算了。", PAD, H - 120);
+
   const d = new Date();
-  ctx.fillText(`算一算，然后，算了。 · ${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`, W / 2, H - 84);
+  const dateStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+  ctx.fillStyle = "#9C958B";
+  ctx.font = `400 21px ${sans}`;
+  ctx.fillText(`www.suanle.cc · ${dateStr}`, PAD, H - 80);
+
+  // 右侧：导向平台的二维码 (高精度带宋韵外框)
+  try {
+    const qrSize = 120;
+    const qrX = W - PAD - qrSize;
+    const qrY = H - 200;
+
+    // 二维码古典底框
+    ctx.fillStyle = "#FAF8F5";
+    drawRoundRect(ctx, qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 12);
+    ctx.fill();
+    ctx.strokeStyle = "#E7E2D6";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    const qrImg = await createQrImage("https://www.suanle.cc/", qrSize);
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+    // 二维码微型说明
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#8F897F";
+    ctx.font = `500 18px ${sans}`;
+    ctx.fillText("扫码问心", qrX + qrSize / 2, H - 52);
+  } catch {
+    /* 降级只绘文字 */
+  }
 
   return canvas.toDataURL("image/png");
 }
