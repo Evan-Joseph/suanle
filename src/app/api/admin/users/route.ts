@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { usersRegistry } from "@/db/schema";
 import { verifyAdminRequest } from "@/lib/server/admin-auth";
 import { batchResolveIpLocations } from "@/lib/server/ip-geo";
+import { backfillProfilesFromChatLogs } from "@/lib/server/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,9 @@ export async function GET(req: Request) {
   if (!isAuthed) {
     return Response.json({ error: "未授权访问" }, { status: 401 });
   }
+
+  // 触发历史日志画像回填总账
+  await backfillProfilesFromChatLogs();
 
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") || "").trim();
@@ -27,6 +31,8 @@ export async function GET(req: Request) {
       conditions.push(
         or(
           ilike(usersRegistry.anonId, term),
+          ilike(usersRegistry.profileName, term),
+          ilike(usersRegistry.profileCity, term),
           ilike(usersRegistry.lastIp, term),
           ilike(usersRegistry.firstIp, term)
         )

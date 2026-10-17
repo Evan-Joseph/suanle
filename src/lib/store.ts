@@ -176,6 +176,29 @@ const idbStorage: StateStorage = {
   },
 };
 
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+export function reportProfileToServer(anonId: string, profile: Partial<Profile>) {
+  if (typeof window === "undefined" || !anonId) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    try {
+      fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          anonId,
+          name: profile.name,
+          birth: profile.birth,
+          gender: profile.gender,
+          city: profile.city,
+        }),
+      }).catch(() => {});
+    } catch {
+      /* 静默 */
+    }
+  }, 400);
+}
+
 const clip = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : undefined);
 
 export const useApp = create<AppState>()(
@@ -215,8 +238,15 @@ export const useApp = create<AppState>()(
           next.tags = [...p.tags, ...add].slice(-16);
         }
         set({ profile: next });
+        reportProfileToServer(get().anonId, next);
       },
-      setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
+      setProfile: (p) => {
+        set((s) => {
+          const next = { ...s.profile, ...p };
+          reportProfileToServer(s.anonId, next);
+          return { profile: next };
+        });
+      },
       removeFact: (i) => set((s) => ({ profile: { ...s.profile, facts: s.profile.facts.filter((_, k) => k !== i) } })),
       removeTag: (i) => set((s) => ({ profile: { ...s.profile, tags: s.profile.tags.filter((_, k) => k !== i) } })),
       addFact: (fact) => {
