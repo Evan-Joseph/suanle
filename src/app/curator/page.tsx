@@ -732,7 +732,13 @@ export default function CuratorPage() {
       {/* 主工作区 */}
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {/* ==================== TAB 1: 神枢总览 (COCKPIT) ==================== */}
-        {activeTab === "cockpit" && telemetry && (
+        {activeTab === "cockpit" && (
+          !telemetry ? (
+            <div className="flex h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-line bg-card/60 p-8 text-mute">
+              <RefreshCw className="h-6 w-6 animate-spin text-ink-2" />
+              <span className="text-[13px]">正在同步神枢遥测与服务器物理资源指标……</span>
+            </div>
+          ) : (
           <div className="space-y-6">
             {/* 4 枚核心业务 KPI 卡片 */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -1111,6 +1117,7 @@ export default function CuratorPage() {
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* ==================== TAB 2: 问卜案卷 (CHAT LOGS) ==================== */}
