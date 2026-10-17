@@ -213,3 +213,113 @@ export function allow(key: string, limit: number, windowMs: number): boolean {
   return true;
 }
 
+/* ───────── 云备份与跨设备换机迁移 ───────── */
+
+const memBackups = new Map<string, { anonId: string; payload: string; ip: string; expiresAt: number; claimed: boolean; claimedBy: string }>();
+const retiredAnonIds = new Set<string>();
+
+/** 生成不易混淆的 8 位大写云同步码，如 SL-8K3P9M */
+function generateSyncCode(): string {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 剔除 0, 1, O, I 等易混淆字符
+  let str = "";
+  for (let i = 0; i < 6; i++) {
+    str += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `SL-${str}`;
+}
+
+export async function createCloudBackup(anonId: string, payload: string, ip: string): Promise<{ ok: boolean; code?: string; expiresAt?: number; error?: string }> {
+  try {
+    const code = generateSyncCode();
+    const expiresAt = Date.now() + 7 * 86400 * 1000; // 7 天有效期
+    const cleanPayload = payload.slice(0, 5 * 1024 * 1024); // 最大 5MB
+
+    // 内存兜底
+    memBackups.set(code, {
+      anonId,
+      payload: cleanPayload,
+      ip,
+      expiresAt,
+      claimed: false,
+      claimedBy: "",
+    });
+
+    // 尝试写入 Postgres
+    try {
+      const { cloudBackups } = await import("@/db/schema");
+      await db.insert(cloudBackups).values({
+        code,
+        anonId: anonId.slice(0, 64),
+        payload: cleanPayload,
+        ip: ip.slice(0, 64),
+        claimed: false,
+        expiresAt: new Date(expiresAt),
+      });
+    } catch {
+      /* 数据库未准备好时内存有效 */
+    }
+
+    return { ok: true, code, expiresAt };
+  } catch (err) {
+    return { ok: false, error: "生成云备份失败，请重试" };
+  }
+}
+
+export async function restoreCloudBackup(rawCode: string, newAnonId: string): Promise<{ ok: boolean; payload?: string; migratedFrom?: string; error?: string }> {
+  const code = (rawCode || "").trim().toUpperCase();
+  if (!code) return { ok: false, error: "请输入有效的云同步码" };
+
+  // 1. 尝试从数据库查询
+  try {
+    const { cloudBackups } = await import("@/db/schema");
+    const rows = await db
+      .select()
+      .from(cloudBackups)
+      .where(eq(cloudBackups.code, code))
+      .limit(1);
+
+    if (rows.length > 0) {
+      const b = rows[0];
+      if (b.expiresAt.getTime() < Date.now()) {
+        return { ok: false, error: "该云同步码已过期（超过7天），请重新从旧设备生成" };
+      }
+      if (b.claimed) {
+        return { ok: false, error: "该云同步码已被新设备提取并失效。为保障安全，一份同步码仅可提取一次" };
+      }
+
+      // 标记为已提取，注销旧设备
+      await db
+        .update(cloudBackups)
+        .set({
+          claimed: true,
+          claimedBy: newAnonId.slice(0, 64),
+          claimedAt: new Date(),
+        })
+        .where(eq(cloudBackups.code, code));
+
+      retiredAnonIds.add(b.anonId);
+      return { ok: true, payload: b.payload, migratedFrom: b.anonId };
+    }
+  } catch {
+    /* 降级内存检查 */
+  }
+
+  // 2. 内存检查
+  const mem = memBackups.get(code);
+  if (!mem) return { ok: false, error: "未找到该同步码，请检查是否输入有误" };
+  if (mem.expiresAt < Date.now()) return { ok: false, error: "该云同步码已过期，请重新从旧设备生成" };
+  if (mem.claimed) return { ok: false, error: "该云同步码已被提取并失效，一份同步码仅可提取一次" };
+
+  mem.claimed = true;
+  mem.claimedBy = newAnonId;
+  retiredAnonIds.add(mem.anonId);
+
+  return { ok: true, payload: mem.payload, migratedFrom: mem.anonId };
+}
+
+export function isAnonMigrated(anonId: string): boolean {
+  if (!anonId) return false;
+  return retiredAnonIds.has(anonId);
+}
+
+

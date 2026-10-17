@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronDown, Download, Upload } from "lucide-react";
+import { ChevronDown, Cloud, CloudDownload, CloudUpload, Copy, Download, Upload } from "lucide-react";
 import { dayKey, exportData, useApp, useUI, type Settings } from "@/lib/store";
 import { syncAmbient } from "@/lib/sound";
 import { Icon } from "../icons";
@@ -37,6 +37,13 @@ export default function SettingsSheet() {
   const [adv, setAdv] = useState(false);
   const [eng, setEng] = useState(settings.engine ?? { base: "", key: "", model: "" });
   const [wipe, setWipe] = useState(false);
+
+  // 云同步状态
+  const [cloudCode, setCloudCode] = useState<string | null>(null);
+  const [cloudLoading, setCloudLoading] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreInput, setRestoreInput] = useState("");
+  const [restoreLoading, setRestoreLoading] = useState(false);
 
   const themes: { id: Settings["theme"]; label: string }[] = [
     { id: "system", label: "跟随系统" },
@@ -75,8 +82,176 @@ export default function SettingsSheet() {
           </Row>
         </div>
 
-        <div className="mt-6 text-[12.5px] text-mute">我的数据</div>
-        <p className="mt-1 text-[12px] leading-relaxed text-mute">聊过的话、命盘和小档案都只存在这台设备上。换手机前，记得先备份。</p>
+        <div className="mt-6 text-[12.5px] text-mute">我的数据与换机同步</div>
+        <p className="mt-1 text-[12px] leading-relaxed text-mute">聊过的话、命盘和小档案默认保存在本地。你可以导出为文件，也可以生成一串短 ID 云端跨机迁移。</p>
+        
+        {/* 云端跨机同步短 ID */}
+        <div className="mt-3 rounded-[20px] border border-line bg-card/75 p-3.5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink/[0.06] text-ink">
+                <Cloud className="h-4 w-4" />
+              </span>
+              <span className="text-[13.5px] font-medium text-ink">云备份 · 跨机找回</span>
+            </div>
+            <span className="text-[11px] text-mute">7天免输文件换机</span>
+          </div>
+
+          {cloudCode ? (
+            <div className="rounded-xl border border-line/70 bg-paper-2/60 p-3 text-center space-y-2">
+              <div className="text-[11.5px] text-mute">你的换机云同步码（7天内有效）：</div>
+              <div className="font-mono text-[22px] font-bold tracking-widest text-ink select-all">
+                {cloudCode}
+              </div>
+              <div className="flex justify-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(cloudCode);
+                    toast("已复制同步码");
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1 text-[12px] text-on-ink transition active:scale-95"
+                >
+                  <Copy className="h-3 w-3" />
+                  <span>复制同步码</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `【算了 · 换机同步码】我的同步码是：${cloudCode}。在新设备浏览器打开算了，进入「我」-「设置」-「输入云同步码」填入即可找回全部记录。在新设备提取后，此设备将自动失效。`;
+                    navigator.clipboard.writeText(text);
+                    toast("已复制完整分享信息");
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1 text-[12px] text-ink-2 hover:bg-paper-2"
+                >
+                  <span>复制说明</span>
+                </button>
+              </div>
+              <p className="text-[10.5px] text-mute leading-relaxed">
+                在新设备的浏览器打开算了并输入此码即可找回。提取后旧端将自动失效，防止数据冲突。
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={cloudLoading}
+                onClick={async () => {
+                  setCloudLoading(true);
+                  try {
+                    const payload = exportData();
+                    const anonId = useApp.getState().anonId;
+                    const res = await fetch("/api/backup", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "export", anonId, payload }),
+                    });
+                    const data = await res.json();
+                    if (data.ok && data.code) {
+                      setCloudCode(data.code);
+                      toast("已生成云同步码");
+                    } else {
+                      toast(data.error || "生成失败，请稍后重试");
+                    }
+                  } catch {
+                    toast("网络异常，生成失败");
+                  }
+                  setCloudLoading(false);
+                }}
+                className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-ink px-3 text-[13px] font-medium text-on-ink shadow-sm transition active:scale-[0.98] disabled:opacity-50"
+              >
+                <CloudUpload className="h-4 w-4" />
+                <span>{cloudLoading ? "正在上传..." : "生成云同步码"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRestoreOpen(true)}
+                className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-paper px-3 text-[13px] font-medium text-ink transition hover:bg-paper-2 active:scale-[0.98]"
+              >
+                <CloudDownload className="h-4 w-4" />
+                <span>输入同步码找回</span>
+              </button>
+            </div>
+          )}
+
+          {/* 恢复输入弹窗 */}
+          {restoreOpen && (
+            <div className="rounded-xl border border-line/80 bg-paper-2/80 p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[12.5px] font-medium text-ink">输入 8 位换机云同步码</span>
+                <button
+                  type="button"
+                  onClick={() => setRestoreOpen(false)}
+                  className="text-[11.5px] text-mute hover:text-ink"
+                >
+                  取消
+                </button>
+              </div>
+              <input
+                type="text"
+                value={restoreInput}
+                onChange={(e) => setRestoreInput(e.target.value.toUpperCase().replace(/\s+/g, ""))}
+                placeholder="例如：SL-K8M4P2"
+                className="h-10 w-full rounded-xl border border-line bg-card px-3 text-center font-mono text-[16px] font-bold tracking-widest text-ink outline-none placeholder:font-sans placeholder:text-[13px] placeholder:font-normal placeholder:tracking-normal focus:border-ink/50"
+              />
+              <button
+                type="button"
+                disabled={restoreLoading || !restoreInput.trim()}
+                onClick={async () => {
+                  const code = restoreInput.trim();
+                  if (!code) return;
+                  setRestoreLoading(true);
+
+                  // 防覆盖保护：若本地已有数据，先自动下载一份本地快照备用
+                  const curSessions = useApp.getState().sessions;
+                  const curRecords = useApp.getState().records;
+                  if (curSessions.length > 0 || curRecords.length > 0) {
+                    try {
+                      const blob = new Blob([exportData()], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `suanle-local-before-restore-${dayKey()}.json`;
+                      a.click();
+                      setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    } catch {}
+                  }
+
+                  try {
+                    const res = await fetch("/api/backup", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "restore", code, newAnonId: useApp.getState().anonId }),
+                    });
+                    const data = await res.json();
+                    if (data.ok && data.payload) {
+                      const parsed = JSON.parse(data.payload);
+                      const ok = useApp.getState().importData(parsed);
+                      if (ok) {
+                        toast("历史记录与命盘已全部找回！欢迎回来");
+                        setRestoreOpen(false);
+                        setRestoreInput("");
+                      } else {
+                        toast("备份数据解析异常");
+                      }
+                    } else {
+                      toast(data.error || "找回失败，请核对同步码");
+                    }
+                  } catch {
+                    toast("网络连接失败，请重试");
+                  }
+                  setRestoreLoading(false);
+                }}
+                className="h-9 w-full rounded-xl bg-ink text-[12.5px] font-medium text-on-ink transition active:scale-[0.98] disabled:opacity-40"
+              >
+                {restoreLoading ? "正在同步恢复..." : "立即找回历史进度"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 传统文件备份 */}
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -88,14 +263,18 @@ export default function SettingsSheet() {
               a.download = `suanle-${dayKey()}.json`;
               a.click();
               setTimeout(() => URL.revokeObjectURL(url), 2000);
-              toast("备份好了");
+              toast("已导出本地备份文件");
             }}
-            className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-line bg-card/70 text-[14px] text-ink transition active:scale-[0.98]"
+            className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-card/70 text-[13px] text-ink transition active:scale-[0.98]"
           >
-            <Icon as={Download} size={17} /> 备份到文件
+            <Icon as={Download} size={15} /> 导出本地文件
           </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-line bg-card/70 text-[14px] text-ink transition active:scale-[0.98]">
-            <Icon as={Upload} size={17} /> 从备份恢复
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-card/70 text-[13px] text-ink transition active:scale-[0.98]"
+          >
+            <Icon as={Upload} size={15} /> 导入本地文件
           </button>
           <input
             ref={fileRef}
@@ -107,8 +286,8 @@ export default function SettingsSheet() {
               e.target.value = "";
               if (!f) return;
               f.text()
-                .then((t) => toast(useApp.getState().importData(JSON.parse(t)) ? "都回来了" : "这个文件好像不太对"))
-                .catch(() => toast("这个文件好像不太对"));
+                .then((t) => toast(useApp.getState().importData(JSON.parse(t)) ? "导入成功，都回来了" : "文件格式不兼容"))
+                .catch(() => toast("文件读取失败"));
             }}
           />
         </div>

@@ -154,20 +154,25 @@ export function castToText(r: CastResult): string {
   ].join("\n");
 }
 
-/* ───────────────────────── 塔罗 · 大阿卡纳 ───────────────────────── */
+/* ───────────────────────── 塔罗 · 韦特全牌组 (78张) ───────────────────────── */
+
+export type TarotSuit = "major" | "wands" | "cups" | "swords" | "pentacles";
 
 export interface TarotCard {
   id: number;
   roman: string;
   name: string;
   en: string;
+  suit: TarotSuit;
+  suitLabel: string;
+  suitGlyph: string;
   up: string;
   rev: string;
 }
 
-const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
+const ROMAN_MAJOR = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
 
-const TAROT_RAW: [string, string, string, string][] = [
+const MAJOR_RAW: [string, string, string, string][] = [
   ["愚者", "The Fool", "新的开始，带着好奇出发", "冲动莽撞，先看清脚下"],
   ["魔术师", "The Magician", "资源齐备，动手就能成", "能力空转，别光说不做"],
   ["女祭司", "The High Priestess", "相信直觉，答案在心里", "想太多，被情绪蒙住眼"],
@@ -192,16 +197,155 @@ const TAROT_RAW: [string, string, string, string][] = [
   ["世界", "The World", "圆满完成，一个周期落幕", "差最后一步，别泄气"],
 ];
 
-export const TAROT: TarotCard[] = TAROT_RAW.map(([name, en, up, rev], id) => ({ id, roman: ROMAN[id], name, en, up, rev }));
+const WANDS_RAW: [string, string, string, string, string][] = [
+  ["权杖一", "Ace of Wands", "1", "行动灵感，火热开端", "缺乏动力，延迟停滞"],
+  ["权杖二", "Two of Wands", "2", "远见规划，做出选择", "犹豫不决，安于现状"],
+  ["权杖三", "Three of Wands", "3", "展望拓展，收获在途", "进展受阻，期待落空"],
+  ["权杖四", "Four of Wands", "4", "安定喜庆，阶段成果", "内部不和，短暂休整"],
+  ["权杖五", "Five of Wands", "5", "良性竞争，意见交锋", "无谓内耗，冲突升级"],
+  ["权杖六", "Six of Wands", "6", "胜利凯旋，获得认可", "自负受挫，光芒暂退"],
+  ["权杖七", "Seven of Wands", "7", "坚守阵地，以一当十", "寡不敌众，压力过载"],
+  ["权杖八", "Eight of Wands", "8", "迅速推进，消息传来", "仓促延误，节奏失控"],
+  ["权杖九", "Nine of Wands", "9", "最后防线，咬牙坚持", "疲惫防备，精神紧绷"],
+  ["权杖十", "Ten of Wands", "10", "重任在肩，负责到底", "负担过重，学会放下"],
+  ["权杖侍从", "Page of Wands", "Page", "热忱求索，新消息至", "浮躁多变，三分钟热度"],
+  ["权杖骑士", "Knight of Wands", "Knight", "雷厉风行，勇往直前", "鲁莽冲动，半途而废"],
+  ["权杖王后", "Queen of Wands", "Queen", "热情自信，魅力四射", "情绪多变，强势掌控"],
+  ["权杖国王", "King of Wands", "King", "领袖气质，大开大合", "独断专行，要求苛刻"],
+];
+
+const CUPS_RAW: [string, string, string, string, string][] = [
+  ["圣杯一", "Ace of Cups", "1", "情感涌动，真挚爱意", "情感干涸，压抑感受"],
+  ["圣杯二", "Two of Cups", "2", "心意相通，平等合作", "隔阂分歧，沟通不良"],
+  ["圣杯三", "Three of Cups", "3", "欢聚庆贺，友谊支持", "过度放纵，小团体是非"],
+  ["圣杯四", "Four of Cups", "4", "沉思冷淡，拒绝新机", "走出封闭，重新接纳"],
+  ["圣杯五", "Five of Cups", "5", "面对失落，聚焦剩余", "走出悲伤，释怀接纳"],
+  ["圣杯六", "Six of Cups", "6", "童真温情，故友重聚", "沉溺过往，抗拒成长"],
+  ["圣杯七", "Seven of Cups", "7", "诸多幻想，需明辨真相", "幻象破除，认清现实"],
+  ["圣杯八", "Eight of Cups", "8", "毅然转身，寻觅真谛", "徘徊不前，不敢割舍"],
+  ["圣杯九", "Nine of Cups", "9", "愿望实现，知足常乐", "表面光鲜，内心空虚"],
+  ["圣杯十", "Ten of Cups", "10", "家庭和美，情感归宿", "家庭摩擦，虚伪和谐"],
+  ["圣杯侍从", "Page of Cups", "Page", "温柔灵动，心动萌芽", "情绪脆弱，自作多情"],
+  ["圣杯骑士", "Knight of Cups", "Knight", "浪漫深情，理想主义", "不切实际，轻诺寡信"],
+  ["圣杯王后", "Queen of Cups", "Queen", "慈悲共情，直觉敏锐", "情绪泛滥，过度依赖"],
+  ["圣杯国王", "King of Cups", "King", "成熟宽容，情绪稳重", "情感冷漠，情绪操控"],
+];
+
+const SWORDS_RAW: [string, string, string, string, string][] = [
+  ["宝剑一", "Ace of Swords", "1", "清醒洞察，切开迷思", "逻辑混乱，言语伤人"],
+  ["宝剑二", "Two of Swords", "2", "僵局权衡，封闭内心", "做出决断，打破沉默"],
+  ["宝剑三", "Three of Swords", "3", "直面心碎，痛过即愈", "执念旧痛，反复自责"],
+  ["宝剑四", "Four of Swords", "4", "静养休整，退思补过", "重新出发，休整结束"],
+  ["宝剑五", "Five of Swords", "5", "各怀心事，赢也是输", "放下争执，及时止损"],
+  ["宝剑六", "Six of Swords", "6", "渡过难关，渐入平稳", "旅途多阻，负重前行"],
+  ["宝剑七", "Seven of Swords", "7", "智取规避，谋定后动", "掩耳盗铃，东窗事发"],
+  ["宝剑八", "Eight of Swords", "8", "自我设限，并非绝境", "挣脱束缚，看清生路"],
+  ["宝剑九", "Nine of Swords", "9", "深夜焦虑，杞人忧天", "噩梦醒来，曙光初现"],
+  ["宝剑十", "Ten of Swords", "10", "触底反弹，至暗时刻过去", "苦尽甘来，彻底解脱"],
+  ["宝剑侍从", "Page of Swords", "Page", "机敏好奇，洞察求真", "疑神疑鬼，刺探八卦"],
+  ["宝剑骑士", "Knight of Swords", "Knight", "锐不可当，直言直行", "尖刻刻薄，盲目冒进"],
+  ["宝剑王后", "Queen of Swords", "Queen", "独立理智，界限清晰", "苛刻冷酷，防备太深"],
+  ["宝剑国王", "King of Swords", "King", "公正理智，专业权威", "冷血教条，强词夺理"],
+];
+
+const PENTACLES_RAW: [string, string, string, string, string][] = [
+  ["星币一", "Ace of Pentacles", "1", "物质机缘，务实起步", "错失良机，急功近利"],
+  ["星币二", "Two of Pentacles", "2", "灵活平衡，收放自如", "顾此失彼，周转不灵"],
+  ["星币三", "Three of Pentacles", "3", "团队协作，精益求精", "缺乏配合，粗制滥造"],
+  ["星币四", "Four of Pentacles", "4", "稳固积累，守住底线", "守财吝啬，墨守成规"],
+  ["星币五", "Five of Pentacles", "5", "暂时匮乏，转机在旁", "走出低谷，迎来温暖"],
+  ["星币六", "Six of Pentacles", "6", "互惠共赢，适度给予", "权力失衡，不平等待遇"],
+  ["星币七", "Seven of Pentacles", "7", "审视成果，耐心等待", "焦虑回报，中途放弃"],
+  ["星币八", "Eight of Pentacles", "8", "精雕细琢，专注当下", "机械重复，欠缺长远"],
+  ["星币九", "Nine of Pentacles", "9", "自给自足，优雅丰盛", "依赖他人，过度攀比"],
+  ["星币十", "Ten of Pentacles", "10", "长久基业，福泽传承", "家族纷扰，财务漏洞"],
+  ["星币侍从", "Page of Pentacles", "Page", "踏实好学，脚踏实地", "好高骛远，眼高手低"],
+  ["星币骑士", "Knight of Pentacles", "Knight", "勤恳可靠，稳步推进", "呆板拖沓，墨守成规"],
+  ["星币王后", "Queen of Pentacles", "Queen", "贤惠慷慨，生活丰盛", "挥霍无度，忽略健康"],
+  ["星币国王", "King of Pentacles", "King", "商业才干，坚实依靠", "唯利是图，贪婪固执"],
+];
+
+export const MAJOR_TAROT: TarotCard[] = MAJOR_RAW.map(([name, en, up, rev], id) => ({
+  id,
+  roman: ROMAN_MAJOR[id],
+  name,
+  en,
+  suit: "major",
+  suitLabel: "大阿卡那",
+  suitGlyph: "✦",
+  up,
+  rev,
+}));
+
+let curId = 22;
+const wandsCards: TarotCard[] = WANDS_RAW.map(([name, en, roman, up, rev]) => ({
+  id: curId++,
+  roman,
+  name,
+  en,
+  suit: "wands",
+  suitLabel: "权杖组",
+  suitGlyph: "🪓",
+  up,
+  rev,
+}));
+
+const cupsCards: TarotCard[] = CUPS_RAW.map(([name, en, roman, up, rev]) => ({
+  id: curId++,
+  roman,
+  name,
+  en,
+  suit: "cups",
+  suitLabel: "圣杯组",
+  suitGlyph: "🏆",
+  up,
+  rev,
+}));
+
+const swordsCards: TarotCard[] = SWORDS_RAW.map(([name, en, roman, up, rev]) => ({
+  id: curId++,
+  roman,
+  name,
+  en,
+  suit: "swords",
+  suitLabel: "宝剑组",
+  suitGlyph: "⚔️",
+  up,
+  rev,
+}));
+
+const pentaclesCards: TarotCard[] = PENTACLES_RAW.map(([name, en, roman, up, rev]) => ({
+  id: curId++,
+  roman,
+  name,
+  en,
+  suit: "pentacles",
+  suitLabel: "星币组",
+  suitGlyph: "🪙",
+  up,
+  rev,
+}));
+
+/** 完整 78 张韦特塔罗牌库 */
+export const TAROT: TarotCard[] = [
+  ...MAJOR_TAROT,
+  ...wandsCards,
+  ...cupsCards,
+  ...swordsCards,
+  ...pentaclesCards,
+];
+
 export const TAROT_POSITIONS = ["此刻的你", "卡住你的", "可以试试"];
 
 export interface TarotDraw {
   cards: { id: number; reversed: boolean }[];
   question?: string;
+  deckMode?: "all" | "major";
 }
 
-export function shuffledDeck(): number[] {
-  const arr = TAROT.map((c) => c.id);
+export function shuffledDeck(mode: "all" | "major" = "all"): number[] {
+  const source = mode === "major" ? MAJOR_TAROT : TAROT;
+  const arr = source.map((c) => c.id);
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -210,8 +354,11 @@ export function shuffledDeck(): number[] {
 }
 
 export function tarotToText(d: TarotDraw): string {
-  const lines = d.cards.map((c, i) => `${TAROT_POSITIONS[i]}：**${TAROT[c.id].name}**${c.reversed ? "（逆位）" : "（正位）"}`);
-  return [d.question ? `我想问：${d.question}` : "我抽了三张塔罗，", ...lines, "你帮我看看？"].join("\n");
+  const lines = d.cards.map((c, i) => {
+    const card = TAROT[c.id] ?? MAJOR_TAROT[c.id] ?? TAROT[0];
+    return `${TAROT_POSITIONS[i]}：**${card.name}** [${card.suitLabel}]${c.reversed ? "（逆位）" : "（正位）"}`;
+  });
+  return [d.question ? `我想问：${d.question}` : "我抽了三张塔罗，", ...lines, "你帮我解解这三张牌的深层含义？"].join("\n");
 }
 
 /* ───────────────────────── 生辰 / 八字 ───────────────────────── */

@@ -90,3 +90,24 @@ export const usageLog = pgTable(
   (t) => [index("usage_log_anon_idx").on(t.anonId, t.createdAt)],
 );
 
+/** 云端备份与换机同步码 */
+export const cloudBackups = pgTable(
+  "cloud_backups",
+  {
+    code: text("code").primaryKey(), // 格式如 SL-K8M4P2
+    anonId: text("anon_id").notNull().default(""),
+    payload: text("payload").notNull().default("{}"),
+    ip: text("ip").notNull().default(""),
+    claimed: boolean("claimed").notNull().default(false),
+    claimedBy: text("claimed_by").notNull().default(""),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("cloud_backups_anon_idx").on(t.anonId),
+    index("cloud_backups_expires_idx").on(t.expiresAt),
+  ],
+);
+
+

@@ -109,6 +109,35 @@ function formatTime(iso: string): string {
   }
 }
 
+const TRIGRAM_NAMES = ["乾天", "坤地", "震木", "巽风", "坎水", "离火", "艮山", "兑泽"];
+const COURTESY_NAMES = [
+  "澄怀", "抱朴", "守拙", "忘机", "清安", "静笃", "和光", "同尘",
+  "枕流", "漱石", "素问", "灵枢", "沧浪", "归舟", "明远", "子逸",
+  "怀仁", "听泉", "望舒", "微澜", "知非", "致远", "问心", "观复"
+];
+
+function getUserAlias(anonId: string, profileName?: string): { name: string; isReal: boolean; tag: string } {
+  if (profileName && profileName.trim()) {
+    return { name: profileName.trim(), isReal: true, tag: "名" };
+  }
+  if (!anonId) return { name: "无名缘友", isReal: false, tag: "客" };
+
+  let hash = 0;
+  for (let i = 0; i < anonId.length; i++) {
+    hash = (hash << 5) - hash + anonId.charCodeAt(i);
+    hash |= 0;
+  }
+  const posHash = Math.abs(hash);
+  const tri = TRIGRAM_NAMES[posHash % TRIGRAM_NAMES.length];
+  const courtesy = COURTESY_NAMES[(posHash >> 3) % COURTESY_NAMES.length];
+  const shortId = anonId.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase();
+  return {
+    name: `${tri}·${courtesy}`,
+    isReal: false,
+    tag: shortId || "缘",
+  };
+}
+
 // 简易 SVG 实时趋势面积图组件 (借鉴 Beszel / Ward 轻量绘图设计)
 function SparklineArea({
   data,
@@ -1151,24 +1180,36 @@ export default function CuratorPage() {
                               {formatTime(item.createdAt)}
                             </td>
                             <td className="px-3 py-3">
-                              <div
-                                onClick={() => {
-                                  setChatSearch(item.anonId);
-                                  void loadChats(1, item.anonId, chatModelFilter);
-                                }}
-                                title="点击过滤此缘友"
-                                className="cursor-pointer font-mono text-[11px] font-medium text-ink hover:underline"
-                              >
-                                {item.anonId.slice(0, 10)}…
-                              </div>
-                              <div className="flex items-center gap-1 text-[10.5px] text-mute">
-                                <MapPin className="h-3 w-3 text-seal/80 shrink-0" />
-                                <span className="font-mono text-[10px]">{item.ip}</span>
-                                <span>·</span>
-                                <span className="truncate max-w-[120px]" title={item.geo || "未知"}>
-                                  {item.geo || "未知"}
-                                </span>
-                              </div>
+                              {(() => {
+                                const alias = getUserAlias(item.anonId, item.profileName);
+                                return (
+                                  <div>
+                                    <div
+                                      onClick={() => {
+                                        setChatSearch(item.anonId);
+                                        void loadChats(1, item.anonId, chatModelFilter);
+                                      }}
+                                      title={`点击过滤此缘友 (${item.anonId})`}
+                                      className="cursor-pointer flex items-center gap-1.5 hover:underline"
+                                    >
+                                      <span className={`text-[12.5px] font-medium ${alias.isReal ? "text-ink font-semibold" : "text-ink"}`}>
+                                        {alias.name}
+                                      </span>
+                                      <span className={`rounded px-1 py-0.2 text-[9.5px] font-mono ${alias.isReal ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : "bg-ink/5 text-mute"}`}>
+                                        #{alias.tag}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[10px] text-mute font-mono mt-0.5">
+                                      <span>{item.anonId.slice(0, 8)}…</span>
+                                      <span>·</span>
+                                      <MapPin className="h-2.5 w-2.5 text-seal/80 shrink-0" />
+                                      <span className="truncate max-w-[100px]" title={`${item.ip} (${item.geo || "未知"})`}>
+                                        {item.geo || item.ip}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-1.5">
@@ -1214,7 +1255,8 @@ export default function CuratorPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3 text-[12px] text-mute">
                           <div className="flex flex-wrap items-center gap-3">
                             <span>
-                              缘友：<b className="font-mono text-ink">{item.anonId}</b>
+                              缘友：<b className="text-ink font-semibold">{getUserAlias(item.anonId, item.profileName).name}</b>
+                              <span className="font-mono text-mute text-[10.5px] ml-1.5">({item.anonId})</span>
                             </span>
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3 w-3 text-seal" />
@@ -1427,8 +1469,9 @@ export default function CuratorPage() {
                           <span className="truncate max-w-[100px]">{item.geo || item.ip}</span>
                         </div>
                       </div>
-                      <div className="mt-0.5 truncate font-mono text-[9.5px] text-mute/80">
-                        {item.anonId || "游客"}
+                      <div className="mt-0.5 truncate text-[10px] text-mute/80 flex items-center gap-1.5">
+                        <span className="font-medium text-ink-2">{getUserAlias(item.anonId).name}</span>
+                        <span className="font-mono text-[9px] text-mute">{item.anonId ? `${item.anonId.slice(0, 8)}…` : "游客"}</span>
                       </div>
                     </div>
                   </div>
@@ -1504,7 +1547,7 @@ export default function CuratorPage() {
                 <table className="w-full text-left text-[12.5px]">
                   <thead className="border-b border-line bg-paper-2 text-[11.5px] font-medium text-mute">
                     <tr>
-                      <th className="py-3 pl-4 pr-2">缘友标识 (anonId)</th>
+                      <th className="py-3 pl-4 pr-2">缘友雅称与标识</th>
                       <th className="px-3 py-3">风控态势</th>
                       <th className="px-3 py-3 text-right">对话量</th>
                       <th className="px-3 py-3 text-right">丢纸篓</th>
@@ -1525,8 +1568,29 @@ export default function CuratorPage() {
                     ) : (
                       users.items.map((u) => (
                         <tr key={u.anonId} className="transition hover:bg-paper/80">
-                          <td className="py-3 pl-4 pr-2 font-mono text-[11px] font-medium text-ink">
-                            {u.anonId}
+                          <td className="py-3 pl-4 pr-2">
+                            {(() => {
+                              const alias = getUserAlias(u.anonId);
+                              return (
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-[13px] text-ink">{alias.name}</span>
+                                    <span className="rounded bg-ink/5 px-1 py-0.2 text-[9.5px] font-mono text-mute">
+                                      #{alias.tag}
+                                    </span>
+                                  </div>
+                                  <div
+                                    onClick={() => {
+                                      void navigator.clipboard.writeText(u.anonId);
+                                    }}
+                                    title="点击复制完整 anonId"
+                                    className="cursor-pointer font-mono text-[10.5px] text-mute hover:text-ink truncate max-w-[130px] mt-0.5"
+                                  >
+                                    {u.anonId.slice(0, 12)}…
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-3 py-3">
                             {u.isBlocked ? (

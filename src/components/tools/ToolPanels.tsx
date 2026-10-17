@@ -6,6 +6,7 @@ import { baziToText, castToText, computeBazi, tarotToText, type CastResult, type
 import { ziweiToText } from "@/lib/ziwei-core";
 import { annualToText, localAnnual, type AnnualReport } from "@/lib/annual";
 import { FREE_DEEP_PER_DAY } from "@/lib/meter";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { Card, GhostButton, Panel, PrimaryButton, Skeleton } from "../ui";
 import { bringToChat } from "../chat/engine";
 import { CoinCaster } from "./CoinCaster";
@@ -173,6 +174,7 @@ function ZiweiPanel() {
   const city = useApp((s) => s.profile.city);
   const [editing, setEditing] = useState(false);
   const [sel, setSel] = useState<number | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const chart = useZiwei(birth, gender, city);
   useEffect(() => {
     if (chart && birth) saveZiwei(birth, chart);
@@ -191,16 +193,57 @@ function ZiweiPanel() {
   const selected = sel ?? soulIdx;
   const target = chart.palaces[selected];
   return (
-    <div className="px-3 pb-10 pt-3">
-      <ZiweiBoard chart={chart} selected={selected} onSelect={setSel} />
-      {!chart.hourKnown && <p className="mt-2 px-1 text-[11.5px] text-mute">时辰不详，暂按午时排盘；记起时辰后可以改。</p>}
-      <div className="mt-3">
-        <PalaceDetail chart={chart} index={selected} />
+    <div className="px-3 pb-10 pt-2">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="text-[12px] text-mute">十二宫命盘</span>
+        <button
+          type="button"
+          onClick={() => setFullscreen(!fullscreen)}
+          className="flex items-center gap-1 rounded-full bg-ink/[0.05] px-2.5 py-1 text-[11.5px] text-ink-2 hover:bg-ink/[0.09] transition"
+        >
+          {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          <span>{fullscreen ? "收起全屏" : "全屏放大看盘"}</span>
+        </button>
       </div>
-      <div className="mt-4 space-y-2 px-1">
-        <PrimaryButton onClick={() => bringToChat(ziweiToText(chart, target))}>请算了细看{target?.name === "命宫" ? "命宫" : `${target?.name ?? ""}宫`}</PrimaryButton>
-        <GhostButton onClick={() => setEditing(true)}>修改生辰</GhostButton>
-      </div>
+
+      {fullscreen ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-paper p-4 overflow-y-auto">
+          <div className="flex items-center justify-between pb-3 border-b border-line">
+            <span className="font-song text-[17px] font-bold">紫微斗数 · 十二宫全图</span>
+            <button
+              type="button"
+              onClick={() => setFullscreen(false)}
+              className="flex items-center gap-1 rounded-full bg-ink px-3 py-1 text-[12px] text-on-ink"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+              <span>收起</span>
+            </button>
+          </div>
+          <div className="my-auto py-4">
+            <ZiweiBoard chart={chart} selected={selected} onSelect={setSel} />
+          </div>
+          <div className="pb-6">
+            <PalaceDetail chart={chart} index={selected} />
+            <div className="mt-3">
+              <PrimaryButton onClick={() => { setFullscreen(false); bringToChat(ziweiToText(chart, target)); }}>
+                带上这宫去聊聊
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <ZiweiBoard chart={chart} selected={selected} onSelect={setSel} />
+          {!chart.hourKnown && <p className="mt-2 px-1 text-[11.5px] text-mute">时辰不详，暂按午时排盘；记起时辰后可以改。</p>}
+          <div className="mt-3">
+            <PalaceDetail chart={chart} index={selected} />
+          </div>
+          <div className="mt-4 space-y-2 px-1">
+            <PrimaryButton onClick={() => bringToChat(ziweiToText(chart, target))}>请算了细看{target?.name === "命宫" ? "命宫" : `${target?.name ?? ""}宫`}</PrimaryButton>
+            <GhostButton onClick={() => setEditing(true)}>修改生辰</GhostButton>
+          </div>
+        </>
+      )}
     </div>
   );
 }
