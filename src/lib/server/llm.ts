@@ -336,3 +336,87 @@ export function extractJSON<T>(text: string | null | undefined): T | null {
     return null;
   }
 }
+
+export interface LLMTelemetryInfo {
+  providers: {
+    name: string;
+    base: string;
+    backupBases: string[];
+    isConfigured: boolean;
+    pingMs: number | null;
+    pingStatus: "ok" | "degraded" | "error" | "unconfigured";
+    errorMsg?: string;
+  }[];
+  activeCoolings: { key: string; remainingSeconds: number }[];
+  modelTiers: {
+    flagship: string[];
+    lightweight: string[];
+  };
+}
+
+export async function getLLMTelemetry(): Promise<LLMTelemetryInfo> {
+  const now = Date.now();
+  const activeCoolings: { key: string; remainingSeconds: number }[] = [];
+  cool.forEach((timestamp, key) => {
+    const elapsed = now - timestamp;
+    if (elapsed < COOL_MS) {
+      activeCoolings.push({ key, remainingSeconds: Math.ceil((COOL_MS - elapsed) / 1000) });
+    }
+  });
+
+  const pingEndpoint = async (base: string, key: string) => {
+    if (!key || !base) return { ms: null, status: "unconfigured" as const };
+    const t0 = Date.now();
+    try {
+      const res = await fetch(`${base}/models`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(3500),
+      });
+      const ms = Date.now() - t0;
+      if (res.ok) return { ms, status: "ok" as const };
+      return { ms, status: "degraded" as const, errorMsg: `HTTP ${res.status}` };
+    } catch (err: unknown) {
+      const ms = Date.now() - t0;
+      const msg = err instanceof Error ? err.message : String(err);
+      return { ms, status: "error" as const, errorMsg: msg };
+    }
+  };
+
+  const [p1, p2] = await Promise.allSettled([
+    pingEndpoint(ENV_BASE, ENV_KEY),
+    pingEndpoint(ENV_SEC_BASE, ENV_SEC_KEY),
+  ]);
+
+  const p1Res = p1.status === "fulfilled" ? p1.value : { ms: null, status: "error" as const, errorMsg: "timeout" };
+  const p2Res = p2.status === "fulfilled" ? p2.value : { ms: null, status: "error" as const, errorMsg: "timeout" };
+
+  return {
+    providers: [
+      {
+        name: "主服务商 (jiji.cc)",
+        base: ENV_BASE,
+        backupBases: ENV_BACKUP_BASES,
+        isConfigured: Boolean(ENV_KEY),
+        pingMs: p1Res.ms,
+        pingStatus: p1Res.status,
+        errorMsg: p1Res.errorMsg,
+      },
+      {
+        name: "备用服务商 (ai-pixel)",
+        base: ENV_SEC_BASE,
+        backupBases: [],
+        isConfigured: Boolean(ENV_SEC_KEY),
+        pingMs: p2Res.ms,
+        pingStatus: p2Res.status,
+        errorMsg: p2Res.errorMsg,
+      },
+    ],
+    activeCoolings,
+    modelTiers: {
+      flagship: [ENV_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_MODEL)],
+      lightweight: [ENV_LIGHT_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_LIGHT_MODEL), ENV_MODEL],
+    },
+  };
+}
+
