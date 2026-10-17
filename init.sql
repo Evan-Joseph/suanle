@@ -30,6 +30,10 @@ CREATE INDEX IF NOT EXISTS chat_logs_ip_idx ON chat_logs(ip);
 
 CREATE TABLE IF NOT EXISTS users_registry (
     anon_id TEXT PRIMARY KEY,
+    profile_name TEXT NOT NULL DEFAULT '',
+    profile_birth TEXT NOT NULL DEFAULT '',
+    profile_gender TEXT NOT NULL DEFAULT '',
+    profile_city TEXT NOT NULL DEFAULT '',
     first_ip TEXT NOT NULL DEFAULT '',
     last_ip TEXT NOT NULL DEFAULT '',
     total_chats INTEGER NOT NULL DEFAULT 0,
@@ -43,6 +47,7 @@ CREATE TABLE IF NOT EXISTS users_registry (
 );
 CREATE INDEX IF NOT EXISTS users_registry_last_active_idx ON users_registry(last_active_at DESC);
 CREATE INDEX IF NOT EXISTS users_registry_blocked_idx ON users_registry(is_blocked);
+CREATE INDEX IF NOT EXISTS users_registry_name_idx ON users_registry(profile_name);
 
 CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,

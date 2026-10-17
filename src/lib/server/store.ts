@@ -85,12 +85,19 @@ export async function logChat(params: {
       profileGender: profileGender.slice(0, 16),
     });
 
-    // 2. 缘友态势表自动递增
+    // 2. 缘友态势表自动递增与缘友档案同步
     if (cleanAnon) {
+      const pName = profileName.slice(0, 64);
+      const pBirth = profileBirth.slice(0, 64);
+      const pGender = profileGender.slice(0, 16);
+
       await db
         .insert(usersRegistry)
         .values({
           anonId: cleanAnon,
+          profileName: pName,
+          profileBirth: pBirth,
+          profileGender: pGender,
           firstIp: ip.slice(0, 64),
           lastIp: ip.slice(0, 64),
           totalChats: 1,
@@ -106,11 +113,91 @@ export async function logChat(params: {
             totalChats: sql`${usersRegistry.totalChats} + 1`,
             totalTokens: sql`${usersRegistry.totalTokens} + ${Math.max(0, Math.round(tokens))}`,
             lastActiveAt: new Date(),
+            ...(pName ? { profileName: pName } : {}),
+            ...(pBirth ? { profileBirth: pBirth } : {}),
+            ...(pGender ? { profileGender: pGender } : {}),
           },
         });
     }
   } catch {
     /* 对话存档异常不干扰用户流程 */
+  }
+}
+
+/** 用户主动修改小档案时，即时同步至服务端缘友台账 */
+export async function syncUserProfile(params: {
+  anonId: string;
+  name?: string;
+  birth?: string;
+  gender?: string;
+  city?: string;
+  ip?: string;
+}) {
+  const { anonId, name = "", birth = "", gender = "", city = "", ip = "local" } = params;
+  if (!anonId) return;
+  try {
+    const cleanAnon = anonId.slice(0, 64);
+    const pName = name.slice(0, 64);
+    const pBirth = birth.slice(0, 64);
+    const pGender = gender.slice(0, 16);
+    const pCity = city.slice(0, 64);
+
+    const updateSet: Record<string, unknown> = {
+      lastIp: ip.slice(0, 64),
+      lastActiveAt: new Date(),
+    };
+    if (pName) updateSet.profileName = pName;
+    if (pBirth) updateSet.profileBirth = pBirth;
+    if (pGender) updateSet.profileGender = pGender;
+    if (pCity) updateSet.profileCity = pCity;
+
+    await db
+      .insert(usersRegistry)
+      .values({
+        anonId: cleanAnon,
+        profileName: pName,
+        profileBirth: pBirth,
+        profileGender: pGender,
+        profileCity: pCity,
+        firstIp: ip.slice(0, 64),
+        lastIp: ip.slice(0, 64),
+        totalChats: 0,
+        totalTokens: 0,
+        totalLetgos: 0,
+        totalMeritCents: 0,
+        lastActiveAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: usersRegistry.anonId,
+        set: updateSet,
+      });
+  } catch {
+    /* 档案同步失败不阻塞前台 */
+  }
+}
+
+let hasBackfilledProfiles = false;
+/** 历史对话日志画像回填总账（老用户在 chat_logs 中留有名字生辰的自动合流） */
+export async function backfillProfilesFromChatLogs() {
+  if (hasBackfilledProfiles) return;
+  hasBackfilledProfiles = true;
+  try {
+    await db.execute(sql`
+      UPDATE users_registry u
+      SET 
+        profile_name = CASE WHEN (u.profile_name IS NULL OR u.profile_name = '') THEN c.profile_name ELSE u.profile_name END,
+        profile_birth = CASE WHEN (u.profile_birth IS NULL OR u.profile_birth = '') THEN c.profile_birth ELSE u.profile_birth END,
+        profile_gender = CASE WHEN (u.profile_gender IS NULL OR u.profile_gender = '') THEN c.profile_gender ELSE u.profile_gender END
+      FROM (
+        SELECT DISTINCT ON (anon_id) anon_id, profile_name, profile_birth, profile_gender
+        FROM chat_logs
+        WHERE (profile_name IS NOT NULL AND profile_name != '') OR (profile_birth IS NOT NULL AND profile_birth != '')
+        ORDER BY anon_id, id DESC
+      ) c
+      WHERE u.anon_id = c.anon_id AND (u.profile_name IS NULL OR u.profile_name = '' OR u.profile_birth IS NULL OR u.profile_birth = '');
+    `);
+  } catch {
+    /* 静默 */
   }
 }
 

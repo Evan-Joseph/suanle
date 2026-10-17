@@ -43,6 +43,10 @@ export const usersRegistry = pgTable(
   "users_registry",
   {
     anonId: text("anon_id").primaryKey(),
+    profileName: text("profile_name").notNull().default(""),
+    profileBirth: text("profile_birth").notNull().default(""),
+    profileGender: text("profile_gender").notNull().default(""),
+    profileCity: text("profile_city").notNull().default(""),
     firstIp: text("first_ip").notNull().default(""),
     lastIp: text("last_ip").notNull().default(""),
     totalChats: integer("total_chats").notNull().default(0),
@@ -57,6 +61,7 @@ export const usersRegistry = pgTable(
   (t) => [
     index("users_registry_last_active_idx").on(t.lastActiveAt),
     index("users_registry_blocked_idx").on(t.isBlocked),
+    index("users_registry_name_idx").on(t.profileName),
   ],
 );
 

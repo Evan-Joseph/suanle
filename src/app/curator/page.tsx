@@ -69,6 +69,10 @@ interface LetgoItem {
 
 interface UserRegistryItem {
   anonId: string;
+  profileName?: string;
+  profileBirth?: string;
+  profileGender?: string;
+  profileCity?: string;
   firstIp: string;
   firstGeo?: string;
   lastIp: string;
@@ -154,10 +158,10 @@ function SparklineArea({
   minVal?: number;
   maxVal?: number;
 }) {
-  if (!data || data.length < 2) return null;
+  const pointsData = !data || data.length === 0 ? [0, 0] : data.length === 1 ? [data[0], data[0]] : data;
   const span = Math.max(1, maxVal - minVal);
-  const step = width / (data.length - 1);
-  const points = data.map((val, i) => {
+  const step = width / Math.max(1, pointsData.length - 1);
+  const points = pointsData.map((val, i) => {
     const norm = Math.max(0, Math.min(1, (val - minVal) / span));
     const y = height - norm * (height - 6) - 3;
     return `${i * step},${y}`;
@@ -165,16 +169,17 @@ function SparklineArea({
 
   const lineD = `M ${points.join(" L ")}`;
   const areaD = `${lineD} L ${width},${height} L 0,${height} Z`;
+  const gradId = `spark-${color.replace(/[^a-zA-Z0-9]/g, "")}-${width}-${height}`;
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg width={width} height={height} className="overflow-visible block">
       <defs>
-        <linearGradient id={`grad-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <path d={areaD} fill={`url(#grad-${color.replace("#", "")})`} />
+      <path d={areaD} fill={`url(#${gradId})`} />
       <path d={lineD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -348,8 +353,16 @@ export default function CuratorPage() {
       if (res.ok) {
         const data = (await res.json()) as SystemTelemetry;
         setTelemetry(data);
-        setCpuHistory((prev) => [...prev.slice(-19), data.server.cpu.loadPercent1m]);
-        setMemHistory((prev) => [...prev.slice(-19), data.server.memory.usedPercent]);
+        if (data.server.cpuHistory && data.server.cpuHistory.length > 0) {
+          setCpuHistory(data.server.cpuHistory);
+        } else {
+          setCpuHistory((prev) => [...prev.slice(-19), data.server.cpu.loadPercent1m]);
+        }
+        if (data.server.memHistory && data.server.memHistory.length > 0) {
+          setMemHistory(data.server.memHistory);
+        } else {
+          setMemHistory((prev) => [...prev.slice(-19), data.server.memory.usedPercent]);
+        }
       } else if (res.status === 401) {
         setAuthenticated(false);
       }
@@ -845,11 +858,9 @@ export default function CuratorPage() {
                           style={{ width: `${Math.min(100, telemetry.server.cpu.loadPercent1m)}%` }}
                         />
                       </div>
-                      {cpuHistory.length > 2 && (
-                        <div className="shrink-0">
-                          <SparklineArea data={cpuHistory} color="#74866a" width={100} height={24} />
-                        </div>
-                      )}
+                      <div className="shrink-0" title="1分钟内实时走势">
+                        <SparklineArea data={cpuHistory} color="#74866a" width={110} height={24} />
+                      </div>
                     </div>
 
                     {/* 多核心明细 */}
@@ -883,11 +894,9 @@ export default function CuratorPage() {
                           style={{ width: `${telemetry.server.memory.usedPercent}%` }}
                         />
                       </div>
-                      {memHistory.length > 2 && (
-                        <div className="shrink-0">
-                          <SparklineArea data={memHistory} color="#5a7186" width={100} height={24} />
-                        </div>
-                      )}
+                      <div className="shrink-0" title="物理内存占用走势">
+                        <SparklineArea data={memHistory} color="#5a7186" width={110} height={24} />
+                      </div>
                     </div>
 
                     {/* 细粒度内存缓存组成 */}
@@ -1518,7 +1527,7 @@ export default function CuratorPage() {
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && void loadUsers(1, userSearch)}
-                  placeholder="搜索 anonId、初访 IP 或最近活跃 IP，回车确认……"
+                  placeholder="搜索缘友称呼、常在城市、anonId 或 IP，回车确认……"
                   className="w-full rounded-xl border border-line bg-paper py-2 pl-10 pr-4 text-[13px] text-ink outline-none transition focus:border-ink/40"
                 />
               </div>
@@ -1570,21 +1579,37 @@ export default function CuratorPage() {
                         <tr key={u.anonId} className="transition hover:bg-paper/80">
                           <td className="py-3 pl-4 pr-2">
                             {(() => {
-                              const alias = getUserAlias(u.anonId);
+                              const alias = getUserAlias(u.anonId, u.profileName);
+                              const hasProfileMeta = Boolean(u.profileBirth || u.profileCity || u.profileGender);
                               return (
-                                <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-medium text-[13px] text-ink">{alias.name}</span>
-                                    <span className="rounded bg-ink/5 px-1 py-0.2 text-[9.5px] font-mono text-mute">
-                                      #{alias.tag}
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className={`text-[13.5px] ${alias.isReal ? "font-semibold text-ink" : "font-medium text-ink-2"}`}>
+                                      {alias.name}
                                     </span>
+                                    {alias.isReal ? (
+                                      <span className="rounded bg-sage/20 px-1.5 py-0.5 text-[9.5px] font-medium text-sage">
+                                        自填称呼
+                                      </span>
+                                    ) : (
+                                      <span className="rounded bg-ink/5 px-1 py-0.2 text-[9.5px] font-mono text-mute">
+                                        #{alias.tag}
+                                      </span>
+                                    )}
                                   </div>
+                                  {hasProfileMeta && (
+                                    <div className="flex items-center gap-1.5 text-[10.5px] text-mute flex-wrap">
+                                      {u.profileBirth && <span className="font-mono text-ink-2">{u.profileBirth}</span>}
+                                      {u.profileGender && <span>({u.profileGender})</span>}
+                                      {u.profileCity && <span>· {u.profileCity}</span>}
+                                    </div>
+                                  )}
                                   <div
                                     onClick={() => {
                                       void navigator.clipboard.writeText(u.anonId);
                                     }}
                                     title="点击复制完整 anonId"
-                                    className="cursor-pointer font-mono text-[10.5px] text-mute hover:text-ink truncate max-w-[130px] mt-0.5"
+                                    className="cursor-pointer font-mono text-[10.5px] text-mute hover:text-ink truncate max-w-[130px]"
                                   >
                                     {u.anonId.slice(0, 12)}…
                                   </div>
