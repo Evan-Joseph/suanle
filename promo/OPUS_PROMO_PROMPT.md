@@ -1,108 +1,123 @@
-# Role & Creative Mission
-你是一位享誉业界的独立创意总监（Creative Director）、资深电影剪辑与动态视觉大师（Cinematic Motion Designer）兼顶级代码视频工程师（Programmatic Video Engineer / Remotion Specialist）。
+# Role & Mission Briefing
+你是一位屡获国际大奖的独立创意总监（Creative Director）、资深动态设计大师（Motion Designer）与代码驱动视频工程师（Remotion / Programmatic Video Engineer）。
 
-你的终极使命是：为现象级东方反内耗心智品牌——**《算了 · Suanle》**（官方网站：`https://www.suanle.cc/`），构思、编导并完整实现一套高画质、具有强烈情绪共鸣与东方极简美学的程序化品牌宣传片工程代码（推荐 1080P / 60FPS，基于 Remotion 或 Canvas/FFmpeg 体系）。
-
-**核心交付原则**：我们拿到代码即可一键无缝导出影视级视频成片（MP4），绝非设计一个交互式 Web 网页。
+你的终极使命是：深入探寻并理解现象级东方反内耗心智品牌——**《算了 · Suanle》**（官方网站：`https://www.suanle.cc/`）的品牌灵魂与产品体验，以**总导演与主创工程师**的身份，自主构思、编排并完整构建一套可直接渲染导出高清 MP4 成片的**程序化品牌宣传视频工程**（基于 Remotion 或现代视频代码管线）。
 
 ---
 
-## 零、 创作者最高自主权（Creative Freedom & Directorial Autonomy）
+## 🚀 第一步：拉取素材仓库与环境盘点 (Action Zero)
 
-我们对你的艺术审美、导演构思与技术实力抱有绝对的信任：
-1. **剧本与文案全权由你创作**：从概念起承转合、镜头语言、叙事节奏、旁白台词到视觉隐喻，**完全由你自主编导**。我们在提示词中不设置任何预设剧本分镜，连“参考架构”也不做限定，绝不画地为牢。
-2. **充分发挥全部实力**：请尽情施展你的镜头推拉摇移、转场缓动（Spring Damping / Ease Curves）、音画卡点、空间透视（Perspective / Tilt）与水墨光影质感，打造震撼人心的品牌大片。
+我们在 GitHub 仓库中为你准备了全套高分辨率、真实录制的视网膜素材与自然声学音频。请在你的沙盒终端中第一时间执行：
 
----
-
-## 一、 品牌哲学与审美基准（Brand DNA & Aesthetics）
-
-- **品牌 Slogan**：**“算一算，然后，算了。”**
-- **哲学内核**：
-  - “算”是探索自我、洞悉周期、理清纷扰；
-  - “算了”则是当代青年与中年人终止精神内耗、接纳不完美、与自己和解的最高东方心法。
-- **产品灵魂**：一个懂八字、紫微、六爻、塔罗，更懂人心的老朋友。没有神棍式的故弄玄虚，没有贩卖焦虑的恐吓，只有温茶对坐的释怀与解压。
-- **宋代极简美学色盘**：
-  - 生宣米白（`#FAF9F6`）、徽墨温黑（`#2B2B2B`）、朱砂印红（`#C4553A`）、古拙泥金（`#A9844A`）、修竹清绿（`#74866A`）、晴岚淡灰（`#E8E3D9`）。
-  - 呈现如生宣漫墨、热茶升腾、孤灯长明的温润与通透。拒绝廉价霓虹赛博朋克、拒绝土味修仙。
-- **纯净用户体验（红线）**：宣传片纯粹面向真实用户的心灵共鸣与产品体验，**严禁使用任何后台、管理、合规、审计、风控等防御性内部文案**。
-- **宣传片硬性元素（必须自然呈现）**：
-  1. 官方访问域名：`https://www.suanle.cc/`
-  2. 平台专属访问二维码（已备妥内嵌朱砂红「算」印章的矢量与高清图）
-
----
-
-## 二、 GitHub 仓库拉取与素材盘点（Repo Ingestion）
-
-所有素材均已保存在官方 GitHub 仓库中，录屏与截图均在真实运行的生产环境无损截取，规格标准、无拉伸变形、无截断、无虚构 UI。
-
-请在你的沙盒环境中直接拉取仓库并盘点素材：
 ```bash
-git clone https://github.com/Evan-Joseph/suanle.git .
-ls -la promo/assets/
+git clone https://github.com/Evan-Joseph/suanle.git
+cd suanle
 ```
 
-### 1. 真实视网膜录屏视频（Real High-Res 60FPS Video Footage）
-*严格复用真实录制画面，绝非让模型重新生成或用 CSS 模拟虚构 UI：*
-- `promo/assets/video/01_home_navigation.mp4`（860 × 1864，14.3s）：移动端首页交互巡礼、宣纸茶馆呼吸感、今日运势与探索导航。
-- `promo/assets/video/02_chat_consultation.mp4`（860 × 1864，10.8s）：老友对话问卜实录、思维链展开、铜钱翻转落案结卦与白话心法流式生成。
-- `promo/assets/video/03_letgo_paper_crumple.mp4`（860 × 1864，16.5s）：**「算了」纸篓灵魂交互**。写下心结信笺、点击“揉掉它”、物理挤压剧烈褶皱成团、空中拖拽与抛物线入篓。
-- `promo/assets/video/04_share_card_with_qr.mp4`（860 × 1864，8.0s）：禅意卡片抽取生成、朱砂印章沉稳盖落、动态渲染平台专属二维码。
-- `promo/assets/video/05_coins_divination.mp4`（860 × 1864，20.8s）：乾隆通宝三枚青铜古钱 3D 物理翻转翻落、逐爻成卦与解卦实录。
-
-### 2. 高清界面快照与专业图谱（Retina UI & Charts）
-- `promo/assets/prod_mobile_home.png`（860 × 1864 / 430 × 932）：移动端主界面全貌。
-- `promo/assets/ui_chat_view.png`（860 × 1864）：老友茶局对话、古铜钱排卦与温暖解盘。
-- `promo/assets/ui_coins_hexagram.png`（860 × 1864）：六爻成卦实机界面（本卦、变卦、动爻标注清晰）。
-- `promo/assets/ui_bazi_chart.png`（860 × 1864）：八字四柱与紫微排盘专业图谱。
-- `promo/assets/ui_kline.png`（860 × 1864）：壮阔的人生大运 K 线图谱与十二流年运势波浪。
-- `promo/assets/ui_letgo_write.png`（860 × 1864）：纸篓心事信笺书写（“写下来，揉掉它”）。
-- `promo/assets/ui_letgo_ball.png`（860 × 1864）：揉碎纸团在空中拖拽瞄准与竹编纸篓界面。
-- `promo/assets/ui_letgo_done.png`（860 × 1864）：纸团入篓、“今天算了 X 件”与豁然开朗金句。
-
-### 3. 木版水印宣纸分享长卡（Retina Share Cards with Platform QR）
-- `promo/assets/card_aphorism.png`（1080 × 1050）：极简箴言木刻卡，内嵌朱砂红「算」印章与官方访问二维码。
-- `promo/assets/card_dialogue.png`（1080 × 1256）：经典老友对话金句卡，内嵌朱砂红「算」印章与官方访问二维码。
-- `promo/assets/card_letgo.png`（1080 × 1064）：纸篓释怀信笺卡，内嵌朱砂红「算」印章与官方访问二维码。
-- `promo/assets/card_annual.png`（1080 × 1128）：大运年度长卡，宣纸底色与官方访问二维码。
-
-### 4. 品牌矢量与专属二维码（Brand & QR Assets）
-- `promo/assets/brand/logo.svg` / `logo.png`（1024 × 1024）：官方品牌矢量标识（坤卦六断爻与微笑圆弧双关，纯黑/朱砂质感）。
-- `promo/assets/brand/suanle_qrcode.svg` / `suanle_qrcode.png`（1024 × 1024）：**官方引流二维码**，直达 `https://www.suanle.cc/`，中心嵌入朱砂红「算」字方印。
-
-### 5. 纯自然声学音轨与拟音素材（Acoustic Audio Stems & Foley SFX）
-*全部采用经过听感审阅的高品质纯音乐与实录拟音，兼具当代年轻与中年群体审美，拒绝 WebAudio 简陋合成声：*
-- **主选配乐**：`promo/assets/audio/suanle_zen_bgm.mp3`（85.7 BPM / 114s）
-  - 《晓寺晨曦》（CC0-1.0 公共领域）：晨钟破晓、竹笛悠扬、温润木吉他，**11.47s 温暖低音鼓点爆发（Kick Beat Drop）**切入，现代东方 Lo-Fi 律动。
-- **备选配乐**：`promo/assets/audio/moon_through_bamboo.mp3`（70.6 BPM / 171s）
-  - 《竹间月影》（CC0-1.0 公共领域）：古筝古琴与深沉温润的 Lo-Fi 律动。
-- **预混母带**：`promo/assets/audio/bgm_suanle_zen.mp3`（49.3s）
-  - 前 37 秒古琴《阳关三叠》，38 秒无缝切入空灵西藏颂钵。
-- **古典散板名曲**：`promo/assets/audio/guqin_liushui.mp3`（《流水》）、`promo/assets/audio/guqin_yangguan.mp3`（《阳关三叠》）。
-- **实录拟音音效（Foley SFX）**：
-  - `promo/assets/audio/water_drop.mp3`（1.2s）：清冽水滴入墨。
-  - `promo/assets/audio/coin_clatter.mp3`（1.8s）：三枚青铜钱在木桌翻滚碰撞的清脆回响。
-  - `promo/assets/audio/paper_crumple.mp3`（2.5s）：真实纸张剧烈揉皱解压 ASMR。
-  - `promo/assets/audio/singing_bowl_strike.mp3`（6.5s）：空灵沉浑西藏颂钵重锤敲击与 6 秒谐波长鸣。
-  - `promo/assets/audio/singing_bowl.mp3`（12.0s）：颂钵低频持续共振长音。
-- **节拍时间线参考**：仓库中已包含详细的鼓点与时间戳对照表 `promo/AUDIO_BEATS.md`，可供精准卡点。
+进入仓库后，重点盘点 `promo/assets/` 目录以及说明文档（同时映射在 `public/promo/`）：
+1. **真实视网膜录屏视频 (`promo/assets/video/`)**：
+   - `01_home_navigation.mp4`（860×1864，14.3s）：移动端首页巡礼、宣纸茶馆质感、老友问候与交互；
+   - `02_chat_consultation.mp4`（860×1864，10.8s）：老友温茶解盘、思维链展开、卦象与白话心法流式生成；
+   - `03_letgo_paper_crumple.mp4`（860×1864，16.5s）：纸篓心结信笺书写、“揉掉它”、强烈物理挤压成团与抛物线入篓；
+   - `04_share_card_with_qr.mp4`（860×1864，8.0s）：宣纸木刻卡片生成、朱砂印章盖落、内嵌官方专属访问二维码；
+   - `05_coins_divination.mp4`（860×1864，20.8s）：乾隆通宝三枚古钱 3D 物理翻转、逐爻生成、六爻成卦。
+   *(注：所有视频均来自真实产品界面录制，严禁在视频中捏造或重新手写虚假 UI)*
+2. **高清界面与木版水印卡片 (`promo/assets/`)**：
+   - `prod_mobile_home.png`：移动端首页全貌高清实机截图；
+   - `ui_chat_view.png`：老友对话与解卦界面；
+   - `ui_bazi_chart.png`：八字四柱命盘实机截图；
+   - `ui_kline.png`：人生大运 K 线图与流年运势波浪图谱；
+   - `ui_coins_hexagram.png`：六爻成卦、动爻变卦实机图；
+   - `ui_letgo_write.png` / `ui_letgo_ball.png` / `ui_letgo_done.png`：纸篓仪式完整物理交互序列截图；
+   - `card_aphorism.png` / `card_dialogue.png` / `card_letgo.png` / `card_annual.png`：四款宣纸金句卡片（内嵌官方二维码与朱砂印）。
+3. **品牌矢量与官方二维码 (`promo/assets/brand/`)**：
+   - `logo.svg` / `logo.png`：官方品牌标识（坤卦六断爻与温润微笑弧线双关）；
+   - `suanle_qrcode.svg` / `suanle_qrcode.png`：官方专属引流二维码（直通 `https://www.suanle.cc/`，中心嵌朱砂红「算」字方印）。
+4. **真实纯自然声学音轨与拟音 (`promo/assets/audio/`)**：
+   - `suanle_zen_bgm.mp3`（85.7 BPM，114s，CC0-1.0）：主配乐《晓寺晨曦》，晨钟破晓、竹笛入场、11.47s 温暖 Lo-Fi 鼓点爆发切入，专为现代青年与大众审美调校；
+   - `moon_through_bamboo.mp3`（70.6 BPM，171s，CC0-1.0）：备选配乐《竹间月影》，古筝古琴与深层沉思律动；
+   - `bgm_suanle_zen.mp3`（49.3s）：预混母带（前 37 秒古琴《阳关三叠》，38 秒西藏颂钵沉浑长鸣）；
+   - `guqin_liushui.mp3` / `guqin_yangguan.mp3`：传统古琴大师散板演奏；
+   - 实录拟音（Foley）：`water_drop.mp3`（清冽水滴入墨）、`coin_clatter.mp3`（青铜钱币落桌翻滚震颤）、`paper_crumple.mp3`（纸张剧烈揉皱解压 ASMR）、`singing_bowl_strike.mp3`（西藏颂钵重击与 6 秒谐波回荡）。
+5. **鼓点与卡点说明文档**：
+   - 细读 `promo/AUDIO_BEATS.md`：详细列出了主配乐在每个小节、强拍（Downbeat）、Kick 爆发点及拟音发生的精确毫秒时间戳与 30FPS/60FPS 对应帧号。
 
 ---
 
-## 三、 沙盒环境探索与工程构建指南（Sandbox & Architecture）
+## 一、 品牌哲学与产品灵魂（Brand DNA & Aesthetics）
 
-1. **探索并利用沙盒环境**：
-   - 充分探索当前沙盒的系统环境、Node/Python 运行时、包管理器（pnpm / npm / yarn）与已安装工具（如 ffmpeg）；
-   - 探索沙盒内是否有相关视频制作技能或文档（例如 remotion skills 或社区最佳实践）；
-   - 视频工程可直接搭建在独立目录（如 `promo-video/`）或复用现有工程结构；推荐使用 `remotion`、`@remotion/shapes`、`@remotion/noise`、`lucide-react` 等。
-2. **专业级动效实现规范**：
-   - 画面善用弹性物理曲线 `spring()` 配合恰当的阻尼（damping / stiffness），避免生硬机械的线性位移；
-   - 善用镜头缩放与微透视（Perspective 3D / Scale Interpolation），营造电影级纵深感；
-   - 视频素材切入与音效卡点保持呼吸感，张弛有度。
-3. **双轨交付策略（确保成片必定落地）**：
-   - **轨道 A（沙盒内直接导出）**：
-     若沙盒算力与环境支持 Headless Chromium 渲染，请直接执行渲染命令（如 `npx remotion render ... out/suanle_promo.mp4`），生成真正的 MP4 视频成片并报告输出文件！
-   - **轨道 B（本地无缝承接导出）**：
-     若 Arena 沙盒环境存在无头浏览器依赖受限、内存或执行超时限制，**请确保输出的完整视频工程源码无语法/类型报错、依赖声明齐全、资源路径正确**，并提供清晰自包含的本地导出指引（用户会将代码拉取到本地 Apple Silicon Mac，一键命令即可极速完成 4K/60FPS 最终渲染）。
+在开始创作前，请先感受《算了 · Suanle》传递给当今时代的独特温度：
 
-请发挥你的全部实力、美学底蕴与工程技艺，为《算了 · Suanle》打造一部惊艳全网的东方禅意极简品牌宣传大片！
+- **品牌核心 Slogan**：**“算一算，然后，算了。”**
+- **产品角色与心智**：一个懂八字、紫微、六爻、塔罗，但**更懂人心**的老朋友。在这个万物皆被算法评估、人人精神内耗的时代，陪用户在热茶升腾的清晨或深夜，把心头那团乱麻理一理，然后，坦然释怀。
+- **东方智慧的双重解读**：
+  - **“算”**：并非宿命论的恐吓，而是借古老东方数术的智慧坐标系（阴阳五行、易经六十四卦、周期起伏），帮人看清处境、洞悉规律、理清困惑；
+  - **“算了”**：绝非消极躺平，而是东方哲学的最高境界——看透无常后的“由缰而行”，放下执念与沉重包袱，与世界、与自己温柔和解。
+- **视觉风格（宋代极简东方美学）**：
+  - **配色基调**：生宣米白（`#FAF9F6`）、徽墨温黑（`#2B2B2B`）、朱砂印红（`#C4553A`）、古拙泥金（`#A9844A`）、修竹清绿（`#74866A`）、晴岚淡灰（`#E8E3D9`）；
+  - **视觉语言**：留白、呼吸感、自然水墨晕染、微透视 3D 浮动、真实物理弹簧阻尼（Spring Physics）、柔和纸张质感与温润光影；
+  - **坚决拒绝**：粗糙土味仙侠风、炫目劣质赛博朋克、神秘恐吓式算命噱头。
+
+---
+
+## 二、 核心功能与特色体验（Feature Highlights for Your Directing）
+
+你手头的真实录屏与素材完整覆盖了产品的 5 大灵魂功能，可供你在视频中自由取舍、编织叙事：
+
+1. **老友温茶解盘（茶馆对话）**：没有冷冰冰的算命机器，像一位多年老友邀你对坐温茶。支持思维链展开（Reasoning Chain）、以温润通透的白话解盘，不贩卖焦虑，抚慰情绪。
+2. **乾隆通宝 3D 六爻起卦**：三枚古铜钱在指尖与空间中立体抛掷翻转，清脆落案，逐爻生成，动爻变卦，借易理洞察当下境遇。
+3. **人生大运 K 线图谱**：将复杂晦涩的命理大运化作如千里江山图般起伏的人生命运浪潮曲线。看清人生波峰与波谷，懂得“低谷时蓄力，高峰时尽兴”，心自安定。
+4. **「算了」纸篓仪式（核心高潮体验）**：
+   - 用户在素雅信笺上写下深夜的执念、焦虑或烦恼（如“放不下昨晚的失眠与焦虑”）；
+   - 点击“揉掉它”——信笺伴随强烈的挤压动效物理凝聚成立体纸团；
+   - 随手指拖拽或物理动力学划出一道抛物线，“咚”地一声精准投掷进竹编纸篓；
+   - 伴随着空灵沉浑的西藏颂钵重锤敲击与长达数秒的余音荡漾，心结烟消云散，界面浮现“今天算了 X 件事”与释怀箴言。这是全片最具爆发力与解压感的灵魂瞬间！
+5. **木版水印宣纸分享卡**：一键生成东方木刻质感长卡，生宣纹理底色、朱砂方印落款、优雅内嵌官方专属访问二维码，让释怀心法在社交网络温润流淌。
+
+---
+
+## 三、 创作自主权与导演权完全交接（Full Directorial Freedom）
+
+> **特别声明**：  
+> **我们刻意不为你提供任何预设的分镜模板、固定台词或死板的脚本框框！**  
+> 你是整部宣传片的总导演与总设计师。我们充分相信你的艺术审美、镜头语言把控力与代码构建能力。
+
+请你完全自主发挥：
+- **片长与节奏**：自主确定全片时长（建议 30 秒至 60 秒之间，推荐 45~50 秒，1080P 宽屏，60FPS 或 30FPS），紧密贴合 `promo/AUDIO_BEATS.md` 中的音乐节奏与强拍；
+- **分镜与叙事弧（Narrative Arc）**：自主设计起承转合（例如从现代人的焦虑叩问、到老友对坐温茶指引、到看透周期浪潮、再到纸篓扔掉执念的燃点与空灵颂钵、最终定格释怀与品牌印信）；
+- **镜头语言与动态视觉**：自主编排镜头推拉（Dolly In/Out）、微距微焦、视差透视（3D Tilt）、动态排版（Typography 动效）、水墨扩散、物理动力学（Spring 阻尼弹簧、揉纸投掷抛物线）；
+- **旁白与字幕文案**：自主撰写能狠狠击中当代青年心灵的文案台词，既有东方意境的诗性，又有通透豁达的人性温度。
+
+---
+
+## 四、 强制约束与红线规则（Must-Haves & Red Lines）
+
+1. **宣传片性质：必须是“可导出视频工程”，绝非交互网页**：
+   - 必须使用程序化视频渲染框架（推荐 **Remotion**，亦支持 Canvas / FFmpeg 渲染流水线）构建工程代码；
+   - 目标是输出能够执行渲染命令生成真实 MP4 高清成片的视频工程，**严禁写成需要用户点击交互的前端 Web 页面**。
+2. **两项关键转化元素的强制植入**：
+   - **官方网站链接**：必须在宣传片中（尤其在片尾/高潮定格处）清晰呈现官方域名 `https://www.suanle.cc/`；
+   - **官方二维码图片**：必须在画面中（例如在片尾呼应或卡片展示时）优雅植入仓库中的官方专属二维码（`promo/assets/brand/suanle_qrcode.png`），引导观众扫码体验。
+3. **内容红线：纯净用户视角，严禁任何内部防御性文案**：
+   - 宣传片展现的是品牌美学、情感共鸣与丝滑的产品交互；
+   - **严禁**在画面、文案或字幕中出现任何关于“合规”、“审查”、“风控”、“申诉”、“数据库”、“后台监控”、“IP归属”等内部工程、运维或防御性词汇。
+
+---
+
+## 五、 沙盒行动指南与算力弹性策略（Sandbox Execution Protocol）
+
+在 Arena Code 沙盒环境中工作时，请遵循以下工程原则：
+
+1. **自主探索沙盒工具与环境**：
+   - 检查并利用沙盒内的 CLI、Node.js / pnpm / npm / Python / ffmpeg 等环境工具；
+   - 推荐在项目下创建独立的视频工程目录（例如 `promo-video/`）或组织自包含的 Remotion 项目；
+   - 推荐依赖：`remotion`、`@remotion/shapes`、`@remotion/noise`、`lucide-react` 等；
+   - 可以通过 `staticFile("promo/...")` 或相对路径直接引用仓库中已有的视频、图片与音频文件。
+2. **算力与渲染弹性策略（关键兜底）**：
+   - **理想状态**：如果沙盒算力、无头浏览器环境与超时额度允许，直接在终端执行视频渲染导出命令（如 `npx remotion render ...`），生成最终的高清 MP4 成片；
+   - **性能与超时兜底**：若沙盒受到无头浏览器限制、GPU 缺失或单次命令超时（Timeout）制约导致全量渲染吃力，**请务必将“实时预览演示（Preview Player）”以及“100% 完整、开箱即用、类型零报错的工程源码 + 一键本地导出脚本”做到极致**！
+   - 我们会将你编写的完整工程直接拉取到本地 Mac（配备 Apple Silicon 硬件加速），本地只需执行一条导出命令（如 `npm run build:video` 或 `npx remotion render MainPromo out/suanle_brand_promo.mp4`）即可完成极速高清 4K/60FPS 导出。
+
+---
+
+请现在就拉取仓库、盘点素材，发挥你全部的创意、艺术审美与工程才华，为《算了 · Suanle》执导并构建这部惊艳的品牌宣传片工程吧！

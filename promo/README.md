@@ -1,14 +1,14 @@
 # 《算了 · Suanle》宣传片素材仓库 (Promo Assets Manifest)
 
-本项目为《算了 · Suanle》（官网：`https://www.suanle.cc/`）品牌宣传片的全量视听与品牌素材清单。所有文件均已提交至 GitHub 仓库，并同步映射至生产环境 CDN，方便代码渲染引擎（如 Remotion）直接通过相对路径或网络 URL 引用。
+本项目为《算了 · Suanle》（官网：`https://www.suanle.cc/`）品牌宣传片的全量视听与品牌素材清单。所有文件均已提交至 GitHub 仓库（`https://github.com/Evan-Joseph/suanle.git`），并同步保存在 `promo/assets/` 以及 `public/promo/` 目录中，方便程序化视频引擎（如 Remotion）直接通过本地相对路径或静态资源路径无损引用。
 
 ---
 
 ## 1. 真实视网膜录屏视频 (Real High-Res Video Footage)
 
-所有视频均为在真实生产环境界面上无损录制（860 × 1864，25/60 FPS，H.264 编码，无黑边无裁剪），真实呈现产品交互：
+所有视频均为在真实生产环境界面上无损录制（860 × 1864 视网膜规格，25/60 FPS，H.264 编码，无黑边无裁剪），真实呈现产品交互，严禁捏造或重写 UI：
 
-| 文件路径 (相对仓库根目录) | 分辨率 | 时长 | 交互内容说明 |
+| 文件路径 | 分辨率 | 时长 | 交互内容说明 |
 | :--- | :---: | :---: | :--- |
 | `promo/assets/video/01_home_navigation.mp4` | 860 × 1864 | 14.3s | **移动端首页巡礼**：宣纸茶馆质感、顶部今日运势、占卦探索及极简底部导航 |
 | `promo/assets/video/02_chat_consultation.mp4` | 860 × 1864 | 10.8s | **老友对话问卜**：温茶解盘、思维链展开、卦象与白话心法流式生成 |
@@ -20,7 +20,7 @@
 
 ## 2. 高清界面与卡片素材 (High-Res UI & Share Cards)
 
-| 文件路径 (相对仓库根目录) | 尺寸 | 说明 |
+| 文件路径 | 尺寸 | 说明 |
 | :--- | :---: | :--- |
 | `promo/assets/card_aphorism.png` | 1080 × 1080 | 极简箴言木刻卡，内嵌朱砂红「算」印章与官方访问二维码 |
 | `promo/assets/card_dialogue.png` | 1080 × 1220 | 经典老友对话金句卡，内嵌朱砂红「算」印章与官方访问二维码 |
@@ -39,22 +39,22 @@
 
 ## 3. 品牌矢量与专属二维码 (Brand & QR Assets)
 
-| 文件路径 (相对仓库根目录) | 格式 | 说明 |
+| 文件路径 | 格式 | 说明 |
 | :--- | :---: | :--- |
 | `promo/assets/brand/logo.svg` / `logo.png` | SVG / PNG | 官方矢量标识（坤卦六断爻与微笑圆弧双关，纯黑/朱砂温润质感） |
 | `promo/assets/brand/suanle_qrcode.svg` / `suanle_qrcode.png` | SVG / PNG | **官方引流二维码**：直通 `https://www.suanle.cc/`，中心嵌入朱砂红「算」字方印 |
 
 ---
 
-## 4. 纯自然声学生态音效 (Pure Acoustic Audio Stems)
+## 4. 纯自然声学音轨与拟音 (Pure Acoustic Audio Stems)
 
-全部音效为 CC0-1.0 公共领域或实录拟音（Foley），无版权争议，适合商业宣发：
+全部音频均为 CC0-1.0 公共领域名曲或高保真实录拟音（Foley），拒绝粗糙 WebAudio 合成音：
 
-| 文件路径 (相对仓库根目录) | 格式 | BPM / 时长 | 说明 |
+| 文件路径 | 格式 | BPM / 时长 | 说明 |
 | :--- | :---: | :---: | :--- |
 | `promo/assets/audio/suanle_zen_bgm.mp3` | MP3 | 85.7 BPM / 114s | **主旋律《晓寺晨曦》**（CC0-1.0）：晨钟破晓、竹笛悠扬、11.47s 温暖 Lo-Fi 鼓点切入，现代东方禅意 |
 | `promo/assets/audio/moon_through_bamboo.mp3` | MP3 | 70.6 BPM / 171s | **备选主乐《竹间月影》**（CC0-1.0）：古筝古琴与深沉温润的 Lo-Fi 律动 |
-| `promo/assets/audio/bgm_suanle_zen.mp3` | MP3 | 49.3s | 49.3s 预混母带纯音乐 BGM（前 37s 古琴《阳关三叠》，38s 无缝切入空灵西藏颂钵） |
+| `promo/assets/audio/bgm_suanle_zen.mp3` | MP3 | 49.3s | **大师预混母带**：0~37s 古琴《阳关三叠》，38s 无缝切入西藏颂钵重击与谐波长鸣 |
 | `promo/assets/audio/guqin_liushui.mp3` | MP3 | 散板 / 493s | 传统古琴大师演奏版《流水》 |
 | `promo/assets/audio/guqin_yangguan.mp3` | MP3 | 散板 / 532s | 传统古琴大师演奏版《阳关三叠》 |
 | `promo/assets/audio/coin_clatter.mp3` | MP3 | 1.8s | 三枚青铜钱在木桌翻滚碰撞的清脆回响 |
