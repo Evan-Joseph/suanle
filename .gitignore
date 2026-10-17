@@ -26,3 +26,5 @@ pnpm-debug.log*
 *.tmp
 *.bak
 *.tsbuildinfo
+promo/assets/video_raw/
+
