@@ -66,3 +66,18 @@ CREATE TABLE IF NOT EXISTS usage_log (
 );
 CREATE INDEX IF NOT EXISTS usage_log_anon_idx ON usage_log(anon_id, created_at);
 
+CREATE TABLE IF NOT EXISTS cloud_backups (
+    code TEXT PRIMARY KEY,
+    anon_id TEXT NOT NULL DEFAULT '',
+    payload TEXT NOT NULL DEFAULT '{}',
+    ip TEXT NOT NULL DEFAULT '',
+    claimed BOOLEAN NOT NULL DEFAULT false,
+    claimed_by TEXT NOT NULL DEFAULT '',
+    claimed_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS cloud_backups_anon_idx ON cloud_backups(anon_id);
+CREATE INDEX IF NOT EXISTS cloud_backups_expires_idx ON cloud_backups(expires_at);
+
+
