@@ -1,50 +1,53 @@
-# 《算了 · Suanle》宣传片素材仓库与工程指南
+# 《算了 · Suanle》品牌官方宣传片工程资产库 (Brand Promo Assets & Toolkit)
 
-本目录包含为《算了 · Suanle》高规格品牌宣传片准备的高清视听素材、镜头脚本及自动化生成工具链。
-
----
-
-## 📁 核心资产索引 (Assets Inventory)
-
-所有素材均已保存在仓库的 `assets/promo/` 及 `public/promo/` 中，可直接在 Remotion 或 Web 前端中通过 `staticFile("promo/...")` 或相对路径无损引用：
-
-| 文件名 | 尺寸 / 格式 | 用途与分镜对应 |
-| :--- | :--- | :--- |
-| `logo.svg` / `logo.png` | 纯矢量 / 1024x1024 | 品牌印章、片尾 End Card 核心 Logo |
-| `prod_mobile_home.png` | 430 × 932 高清无损 | 第一幕/第二幕手机桌面端主界面展示 |
-| `ui_chat_view.png` | 860 × 1864 视网膜级 | 第二幕：老友茶局、三枚铜钱占卦与温热点拨对话 |
-| `ui_bazi_chart.png` | 860 × 1864 视网膜级 | 第二幕：八字排盘与紫微斗数罗盘排盘界面 |
-| `ui_kline.png` | 860 × 1864 视网膜级 | 第三幕：人生大运 K 线图、十二流月涨落浪潮图谱 |
-| `ui_letgo_write.png` | 860 × 1864 视网膜级 | 第四幕：信笺书写放不下的心事（“写下来，揉掉它”） |
-| `ui_letgo_ball.png` | 860 × 1864 视网膜级 | 第四幕：手势拖拽瞄准、纸团与竹编纸篓物理交互 |
-| `ui_letgo_done.png` | 860 × 1864 视网膜级 | 第四幕：纸团入篓、“算了”释怀金句与今天算了计数 |
-| `card_annual.png` | 1080 × 1234 高清卡片 | 大运年度宣纸长卡木版水印展示 |
-| `card_dialogue.png` | 1080 × 1020 高清卡片 | 经典对话点拨长图卡片展示 |
-| `card_letgo.png` | 1080 × 1020 高清卡片 | 纸篓释怀卡片展示 |
-| `card_aphorism.png` | 1080 × 1020 高清卡片 | 极简单句箴言木刻卡片展示 |
+本项目为《算了 · Suanle》（官网：`https://www.suanle.cc/`）品牌宣传片与 AI 视频导演（Opus 5.5 / Remotion）准备的完整资产库。
 
 ---
 
-## 🛠️ 推荐视频工程框架 (Remotion Framework)
+## 📁 目录结构 (Directory Structure)
 
-本宣传片推荐使用 **Remotion**（基于 React + TypeScript + Spring 物理弹簧系统），实现真正的**代码驱动、帧级精确、无损渲染**。
-
-### 1. 快速脚手架初始化
-```bash
-# 初始化空白视频工程
-npx create-video --yes --blank suanle-promo-video
-cd suanle-promo-video
-
-# 安装 Remotion Agent Skills（为 AI Agent 注入精准视频 API）
-npx remotion skills add
-
-# 启动本地实时热重载预览调试
-npm run dev
+```text
+promo/
+├── OPUS_PROMO_PROMPT.md       # 核心交付物：为 Opus 5.5 定制的终极大导演提示词
+├── STORYBOARD.md              # 电影级五幕分镜视听脚本（运镜、景别、声效、旁白）
+├── AUDIO_BEATS.md             # 毫秒与帧级别精确卡点音频时码表 (EDL & Stems)
+├── README.md                  # 本说明文档
+└── assets/                    # 高清生产级素材集合
+    ├── video/                 # 1080P Retina 真机实录 60FPS MP4 视频
+    │   ├── 01_home_navigation.mp4        # 首页八字/六爻导航与每日卦象实录
+    │   ├── 02_chat_consultation.mp4      # 对话解盘、温茶对坐实录
+    │   ├── 03_letgo_paper_crumple.mp4    # 真实书写、揉皱纸团、投掷入篓实录
+    │   └── 04_share_card_with_qr.mp4     # 带官方二维码的分享卡推拉运镜实录
+    ├── audio/                 # 纯音乐母带与拟音无损音效
+    │   ├── bgm_suanle_zen.mp3            # 50s 禅意母带（古琴阳关三叠 + 38s 颂钵）
+    │   ├── guqin_yangguan.mp3            # 5:50 古琴完整母带
+    │   ├── singing_bowl_strike.mp3       # 西藏颂钵清脆敲击与泛音
+    │   ├── singing_bowl.mp3              # 54s 颂钵悠远余鸣
+    │   ├── coin_clatter.mp3              # 青铜钱币木桌翻滚碰撞声
+    │   ├── water_drop.mp3                # 清冽水滴声
+    │   └── paper_crumple.mp3             # 真实纸张剧烈揉皱 ASMR
+    ├── suanle_qrcode.svg      # 官方平台矢量二维码（指向 https://www.suanle.cc/）
+    ├── suanle_qrcode.png      # 官方平台 1024×1024 高精度二维码
+    ├── logo.svg / logo.png    # 品牌矢量标识（坤卦双关与微笑圆弧）
+    ├── card_aphorism.png      # 带有平台二维码的 1080P 经典箴言卡
+    ├── card_dialogue.png      # 带有平台二维码的 1080P 对话解盘卡
+    ├── card_letgo.png         # 带有平台二维码的 1080P 算了信笺卡
+    ├── card_annual.png        # 带有平台二维码的 1080P 流年运势卡
+    └── ui_*.png               # 860×1864 实机界面高清切图
 ```
 
-### 2. 本地无损极速导出 (Apple Silicon / NVENC 加速)
-若沙盒环境计算资源有限，可直接将整套工程克隆至本地，一键执行渲染：
+> **注意**：所有素材已同步镜像至 `public/promo/`，在 Remotion 中可以直接通过 `staticFile("promo/<subpath>")` 无缝调用。
+
+---
+
+## 🚀 本地渲染命令 (Local Rendering)
+
+若由 Opus 5.5 生成 Remotion 代码后在本地渲染：
+
 ```bash
-# 导出 1080P 60FPS 生产级 MP4 宣传片
+# 1. 确保安装 Remotion 依赖
+npm install remotion @remotion/shapes @remotion/noise
+
+# 2. 导出 1080P 60FPS 生产级品牌宣传片
 npx remotion render MainPromo out/suanle_brand_promo.mp4 --gl=angle --concurrency=4
 ```
