@@ -1,0 +1,32 @@
+{
+  "name": "react-vite-tailwind",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:video": "remotion render src/promo/index.ts MainPromo out/suanle_brand_promo_opus55low.mp4 --codec=h264 --crf=16"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.536",
+    "@remotion/player": "^4.0.536",
+    "clsx": "2.1.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "remotion": "^4.0.536",
+    "tailwind-merge": "3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.17",
+    "@types/node": "22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "tailwindcss": "4.1.17",
+    "typescript": "5.9.3",
+    "vite": "7.3.2",
+    "vite-plugin-singlefile": "2.3.0"
+  }
+}
