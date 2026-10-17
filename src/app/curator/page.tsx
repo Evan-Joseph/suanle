@@ -1,27 +1,39 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Activity,
   AlertCircle,
+  ArrowDownToLine,
   Ban,
   Bot,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
+  Code,
+  Copy,
   Cpu,
   Database,
+  Eye,
+  FileText,
+  Globe2,
   HardDrive,
   KeyRound,
   Lock,
   LogOut,
+  MapPin,
   MessageSquare,
+  Network,
   RefreshCw,
   Search,
   Shield,
   Sparkles,
   Trash2,
+  TrendingUp,
   Unlock,
   Users,
 } from "lucide-react";
@@ -33,6 +45,7 @@ interface ChatLogItem {
   id: number;
   anonId: string;
   ip: string;
+  geo?: string;
   userAgent: string;
   userPrompt: string;
   assistantReply: string;
@@ -50,13 +63,16 @@ interface LetgoItem {
   anonId: string;
   content: string;
   ip: string;
+  geo?: string;
   createdAt: string;
 }
 
 interface UserRegistryItem {
   anonId: string;
   firstIp: string;
+  firstGeo?: string;
   lastIp: string;
+  lastGeo?: string;
   totalChats: number;
   totalTokens: number;
   totalLetgos: number;
@@ -68,7 +84,7 @@ interface UserRegistryItem {
 }
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (!bytes || bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -93,6 +109,151 @@ function formatTime(iso: string): string {
   }
 }
 
+// 简易 SVG 实时趋势面积图组件 (借鉴 Beszel / Ward 轻量绘图设计)
+function SparklineArea({
+  data,
+  color = "#74866a",
+  height = 42,
+  width = 160,
+  minVal = 0,
+  maxVal = 100,
+}: {
+  data: number[];
+  color?: string;
+  height?: number;
+  width?: number;
+  minVal?: number;
+  maxVal?: number;
+}) {
+  if (!data || data.length < 2) return null;
+  const span = Math.max(1, maxVal - minVal);
+  const step = width / (data.length - 1);
+  const points = data.map((val, i) => {
+    const norm = Math.max(0, Math.min(1, (val - minVal) / span));
+    const y = height - norm * (height - 6) - 3;
+    return `${i * step},${y}`;
+  });
+
+  const lineD = `M ${points.join(" L ")}`;
+  const areaD = `${lineD} L ${width},${height} L 0,${height} Z`;
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={`grad-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.0" />
+        </linearGradient>
+      </defs>
+      <path d={areaD} fill={`url(#grad-${color.replace("#", "")})`} />
+      <path d={lineD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// 24小时小时级走势图
+function HourlyTrendChart({
+  chats,
+  tokens,
+}: {
+  chats: { hour: string; count: number }[];
+  tokens: { hour: string; count: number }[];
+}) {
+  const merged = useMemo(() => {
+    const map = new Map<string, { hour: string; chats: number; tokens: number }>();
+    chats.forEach((c) => {
+      map.set(c.hour, { hour: c.hour, chats: c.count, tokens: 0 });
+    });
+    tokens.forEach((t) => {
+      const existing = map.get(t.hour) || { hour: t.hour, chats: 0, tokens: 0 };
+      existing.tokens = t.count;
+      map.set(t.hour, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => a.hour.localeCompare(b.hour));
+  }, [chats, tokens]);
+
+  if (merged.length === 0) {
+    return (
+      <div className="flex h-36 items-center justify-center rounded-xl border border-dashed border-line text-[12px] text-mute">
+        暂无过去 24 小时对话与算力波动记录
+      </div>
+    );
+  }
+
+  const maxChats = Math.max(1, ...merged.map((m) => m.chats));
+  const maxTokens = Math.max(100, ...merged.map((m) => m.tokens));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-[11.5px] text-mute">
+        <div className="flex items-center gap-4">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-sage" />
+            <span>对话量 (次)</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-gold" />
+            <span>算力 Token 吞吐</span>
+          </span>
+        </div>
+        <span>过去 24 小时小时级分布</span>
+      </div>
+
+      <div className="grid h-36 grid-cols-12 items-end gap-1.5 rounded-xl border border-line/60 bg-paper p-3">
+        {merged.slice(-12).map((item, idx) => {
+          const chatH = Math.max(4, Math.round((item.chats / maxChats) * 90));
+          const tokH = Math.max(2, Math.round((item.tokens / maxTokens) * 90));
+          return (
+            <div key={idx} className="group relative flex h-full flex-col items-center justify-end">
+              <div className="flex w-full items-end justify-center gap-1">
+                <div
+                  style={{ height: `${chatH}%` }}
+                  className="w-2.5 rounded-t bg-sage transition-all hover:bg-sage/80"
+                  title={`${item.hour}: 对话 ${item.chats} 次`}
+                />
+                <div
+                  style={{ height: `${tokH}%` }}
+                  className="w-2.5 rounded-t bg-gold/70 transition-all hover:bg-gold"
+                  title={`${item.hour}: ${item.tokens} Tokens`}
+                />
+              </div>
+              <span className="mt-1 font-mono text-[9px] text-mute truncate max-w-full">
+                {item.hour.slice(0, 5)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 案卷 Markdown 优雅富文本渲染组件
+const markdownComponents: Components = {
+  h1: ({ children }) => <h1 className="mt-3 mb-1.5 font-song text-[16px] font-bold text-ink">{children}</h1>,
+  h2: ({ children }) => <h2 className="mt-2.5 mb-1 font-song text-[15px] font-bold text-ink">{children}</h2>,
+  h3: ({ children }) => <h3 className="mt-2 mb-1 font-song text-[14px] font-semibold text-ink">{children}</h3>,
+  p: ({ children }) => <p className="my-1.5 leading-relaxed text-ink/90">{children}</p>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-2.5 rounded-xl border-l-4 border-seal/50 bg-seal/[0.05] p-3 font-song text-[13.5px] italic leading-relaxed text-ink-2">
+      {children}
+    </blockquote>
+  ),
+  strong: ({ children }) => <strong className="font-semibold text-seal">{children}</strong>,
+  ul: ({ children }) => <ul className="my-1.5 ml-4 list-disc space-y-0.5">{children}</ul>,
+  ol: ({ children }) => <ol className="my-1.5 ml-4 list-decimal space-y-0.5">{children}</ol>,
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  hr: () => <hr className="my-3 border-line" />,
+  code: ({ children }) => (
+    <code className="rounded bg-ink/[0.06] px-1.5 py-0.5 font-mono text-[12px] text-ink">{children}</code>
+  ),
+  pre: ({ children }) => (
+    <pre className="my-2 overflow-x-auto rounded-xl border border-line bg-paper p-3 font-mono text-[12px] text-ink">
+      {children}
+    </pre>
+  ),
+};
+
 export default function CuratorPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
@@ -106,6 +267,8 @@ export default function CuratorPage() {
 
   // 遥测数据
   const [telemetry, setTelemetry] = useState<SystemTelemetry | null>(null);
+  const [cpuHistory, setCpuHistory] = useState<number[]>([]);
+  const [memHistory, setMemHistory] = useState<number[]>([]);
 
   // 对话审计数据
   const [chats, setChats] = useState<{ items: ChatLogItem[]; total: number; page: number; totalPages: number }>({
@@ -117,6 +280,8 @@ export default function CuratorPage() {
   const [chatSearch, setChatSearch] = useState("");
   const [chatModelFilter, setChatModelFilter] = useState("");
   const [expandedChatId, setExpandedChatId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"markdown" | "raw">("markdown");
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   // 纸篓心事数据
   const [letgos, setLetgos] = useState<{ items: LetgoItem[]; total: number; page: number; totalPages: number }>({
@@ -154,15 +319,17 @@ export default function CuratorPage() {
       if (res.ok) {
         const data = (await res.json()) as SystemTelemetry;
         setTelemetry(data);
+        setCpuHistory((prev) => [...prev.slice(-19), data.server.cpu.loadPercent1m]);
+        setMemHistory((prev) => [...prev.slice(-19), data.server.memory.usedPercent]);
       } else if (res.status === 401) {
         setAuthenticated(false);
       }
     } catch {
-      /* 静默处理 */
+      /* 静默 */
     }
   };
 
-  // 加载对话列表
+  // 加载对话列表 (带 IP 归属地)
   const loadChats = async (page = 1, q = chatSearch, model = chatModelFilter) => {
     try {
       const p = new URLSearchParams({ page: String(page), limit: "15" });
@@ -174,11 +341,11 @@ export default function CuratorPage() {
         setChats(data);
       }
     } catch {
-      /* 静默处理 */
+      /* 静默 */
     }
   };
 
-  // 加载纸篓列表
+  // 加载纸篓列表 (带 IP 归属地)
   const loadLetgos = async (page = 1, q = letgoSearch) => {
     try {
       const p = new URLSearchParams({ page: String(page), limit: "16" });
@@ -189,11 +356,11 @@ export default function CuratorPage() {
         setLetgos(data);
       }
     } catch {
-      /* 静默处理 */
+      /* 静默 */
     }
   };
 
-  // 加载缘友列表
+  // 加载缘友列表 (带 IP 归属地)
   const loadUsers = async (page = 1, q = userSearch) => {
     try {
       const p = new URLSearchParams({ page: String(page), limit: "15" });
@@ -204,7 +371,7 @@ export default function CuratorPage() {
         setUsers(data);
       }
     } catch {
-      /* 静默处理 */
+      /* 静默 */
     }
   };
 
@@ -230,7 +397,7 @@ export default function CuratorPage() {
     if (!authenticated || !autoRefresh) return;
     const interval = setInterval(() => {
       void loadTelemetry();
-    }, 15000);
+    }, 12000);
     return () => clearInterval(interval);
   }, [authenticated, autoRefresh]);
 
@@ -289,6 +456,25 @@ export default function CuratorPage() {
     }
   };
 
+  // 复制文本
+  const copyToClipboard = (text: string, id: number) => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  };
+
+  // 导出 JSON 数据文件
+  const exportJson = (data: unknown, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (checkingAuth) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-paper text-ink">
@@ -303,7 +489,7 @@ export default function CuratorPage() {
   // 鉴权未通过：展示极简古典登录卡片
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-paper px-4 py-12 text-ink selection:bg-seal/15">
+      <div data-curator-root="true" className="flex min-h-screen items-center justify-center bg-paper px-4 py-12 text-ink selection:bg-seal/15">
         <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-line bg-card p-8 shadow-[0_20px_50px_rgba(60,40,10,0.06)]">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-seal to-transparent opacity-80" />
 
@@ -363,11 +549,11 @@ export default function CuratorPage() {
     );
   }
 
-  // 鉴权通过：进入掌阁内阁主控制台
+  // 鉴权通过：进入掌阁内阁主控制台 (支持纵向平滑滚动到底)
   return (
-    <div className="min-h-screen bg-paper text-ink selection:bg-seal/15">
+    <div data-curator-root="true" className="min-h-screen w-full overflow-y-auto bg-paper pb-28 text-ink selection:bg-seal/15">
       {/* 顶部常驻导航栏 */}
-      <header className="sticky top-0 z-30 border-b border-line bg-card/90 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-line bg-card/92 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-paper-2 text-seal">
@@ -380,12 +566,12 @@ export default function CuratorPage() {
                   CURATOR CONSOLE
                 </span>
               </div>
-              <p className="text-[11px] text-mute">合规审查流水 · 服务器遥测 · 双服务商熔断</p>
+              <p className="text-[11px] text-mute">合规审查流水 · IP归属地溯源 · 服务器遥测 · 双服务商熔断</p>
             </div>
           </div>
 
           {/* 实时状态指示胶囊 */}
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2.5 md:flex">
             {telemetry && (
               <>
                 <div className="flex items-center gap-1.5 rounded-full border border-line bg-paper px-2.5 py-1 text-[11px] text-ink-2">
@@ -422,7 +608,7 @@ export default function CuratorPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              title={autoRefresh ? "自动轮询中 (15s)" : "已暂停自动轮询"}
+              title={autoRefresh ? "自动轮询中 (12s)" : "已暂停自动轮询"}
               className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[12px] transition ${
                 autoRefresh
                   ? "border-sage/40 bg-sage/10 text-sage"
@@ -430,7 +616,7 @@ export default function CuratorPage() {
               }`}
             >
               <Activity className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{autoRefresh ? "15s轮询" : "定格"}</span>
+              <span className="hidden sm:inline">{autoRefresh ? "12s轮询" : "定格"}</span>
             </button>
 
             <button
@@ -567,6 +753,23 @@ export default function CuratorPage() {
               </div>
             </div>
 
+            {/* 24 小时走势图 */}
+            <div className="rounded-2xl border border-line bg-card p-6 shadow-xs">
+              <div className="flex items-center justify-between border-b border-line pb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-sage" />
+                  <h2 className="font-song text-[16px] font-bold text-ink">业务吞吐走势 (24小时波动分析)</h2>
+                </div>
+                <span className="text-[11px] text-mute">按整点聚合</span>
+              </div>
+              <div className="mt-4">
+                <HourlyTrendChart
+                  chats={telemetry.database.hourlyTrends.chats}
+                  tokens={telemetry.database.hourlyTrends.tokens}
+                />
+              </div>
+            </div>
+
             {/* 服务器资源监控仪表盘 */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* 节点硬件态势 */}
@@ -589,7 +792,7 @@ export default function CuratorPage() {
                 </div>
 
                 <div className="mt-5 space-y-4">
-                  {/* CPU 水位 */}
+                  {/* CPU 水位 + Sparkline 趋势 */}
                   <div>
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="text-ink-2">
@@ -600,37 +803,81 @@ export default function CuratorPage() {
                         {telemetry.server.cpu.loadAvg[1]})
                       </span>
                     </div>
-                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-paper-2">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          telemetry.server.cpu.loadPercent1m > 80
-                            ? "bg-seal"
-                            : telemetry.server.cpu.loadPercent1m > 50
-                            ? "bg-gold"
-                            : "bg-sage"
-                        }`}
-                        style={{ width: `${Math.min(100, telemetry.server.cpu.loadPercent1m)}%` }}
-                      />
+                    <div className="mt-1.5 flex items-center gap-3">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-paper-2">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                            telemetry.server.cpu.loadPercent1m > 80
+                              ? "bg-seal"
+                              : telemetry.server.cpu.loadPercent1m > 50
+                              ? "bg-gold"
+                              : "bg-sage"
+                          }`}
+                          style={{ width: `${Math.min(100, telemetry.server.cpu.loadPercent1m)}%` }}
+                        />
+                      </div>
+                      {cpuHistory.length > 2 && (
+                        <div className="shrink-0">
+                          <SparklineArea data={cpuHistory} color="#74866a" width={100} height={24} />
+                        </div>
+                      )}
                     </div>
+
+                    {/* 多核心明细 */}
+                    {telemetry.server.cpu.coresDetail && telemetry.server.cpu.coresDetail.length > 0 && (
+                      <div className="mt-2.5 grid grid-cols-2 gap-2 text-[10.5px] text-mute">
+                        {telemetry.server.cpu.coresDetail.map((core) => (
+                          <div key={core.index} className="flex items-center justify-between rounded bg-paper px-2 py-1">
+                            <span>Core #{core.index}</span>
+                            <span className="font-mono text-ink">{core.speed} MHz</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* 物理内存水位 */}
+                  {/* 物理内存水位 + Sparkline */}
                   <div>
                     <div className="flex items-center justify-between text-[12px]">
-                      <span className="text-ink-2">宿主物理内存水位</span>
+                      <span className="text-ink-2">宿主物理内存水位 (Linux MemAvailable)</span>
                       <span className="font-mono font-medium text-ink">
                         {formatBytes(telemetry.server.memory.usedBytes)} / {formatBytes(telemetry.server.memory.totalBytes)} (
                         {telemetry.server.memory.usedPercent}%)
                       </span>
                     </div>
-                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-paper-2">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          telemetry.server.memory.usedPercent > 85 ? "bg-seal" : "bg-sage"
-                        }`}
-                        style={{ width: `${telemetry.server.memory.usedPercent}%` }}
-                      />
+                    <div className="mt-1.5 flex items-center gap-3">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-paper-2">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                            telemetry.server.memory.usedPercent > 85 ? "bg-seal" : "bg-sage"
+                          }`}
+                          style={{ width: `${telemetry.server.memory.usedPercent}%` }}
+                        />
+                      </div>
+                      {memHistory.length > 2 && (
+                        <div className="shrink-0">
+                          <SparklineArea data={memHistory} color="#5a7186" width={100} height={24} />
+                        </div>
+                      )}
                     </div>
+
+                    {/* 细粒度内存缓存组成 */}
+                    {(telemetry.server.memory.cachedBytes || telemetry.server.memory.buffersBytes) && (
+                      <div className="mt-2 flex items-center gap-3 text-[10.5px] text-mute">
+                        {telemetry.server.memory.cachedBytes && (
+                          <span>PageCache: {formatBytes(telemetry.server.memory.cachedBytes)}</span>
+                        )}
+                        {telemetry.server.memory.buffersBytes && (
+                          <span>Buffers: {formatBytes(telemetry.server.memory.buffersBytes)}</span>
+                        )}
+                        {telemetry.server.memory.swapTotalBytes && (
+                          <span>
+                            Swap: {formatBytes(telemetry.server.memory.swapUsedBytes || 0)} /{" "}
+                            {formatBytes(telemetry.server.memory.swapTotalBytes)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* 磁盘空间水位 */}
@@ -649,11 +896,28 @@ export default function CuratorPage() {
                           style={{ width: `${telemetry.server.disk.usedPercent}%` }}
                         />
                       </div>
+                      <div className="mt-1 text-right text-[10.5px] text-mute">
+                        剩余可用空间：{formatBytes(telemetry.server.disk.freeBytes)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 网络传输流量 */}
+                  {telemetry.server.network && (
+                    <div className="flex items-center justify-between rounded-xl border border-line bg-paper px-3 py-2 text-[11px] text-mute">
+                      <div className="flex items-center gap-2">
+                        <Network className="h-3.5 w-3.5 text-ink-2" />
+                        <span>容器网络累计吞吐</span>
+                      </div>
+                      <div className="flex items-center gap-3 font-mono text-ink">
+                        <span>↓ RX: {formatBytes(telemetry.server.network.rxBytes)}</span>
+                        <span>↑ TX: {formatBytes(telemetry.server.network.txBytes)}</span>
+                      </div>
                     </div>
                   )}
 
                   {/* Node.js 进程轻量画像 */}
-                  <div className="mt-4 rounded-xl border border-line bg-paper p-3 text-[11.5px] text-mute">
+                  <div className="rounded-xl border border-line bg-paper p-3 text-[11.5px] text-mute">
                     <div className="flex items-center justify-between">
                       <span>Node.js 运行时：{telemetry.server.nodeVersion}</span>
                       <span>进程持续：{formatDuration(telemetry.server.processUptimeSeconds)}</span>
@@ -710,7 +974,7 @@ export default function CuratorPage() {
                     <span className="text-[12px] font-medium text-ink-2">核心数据表账本盘点</span>
                     <div className="mt-2 space-y-1.5 text-[12px]">
                       <div className="flex justify-between border-b border-line/50 pb-1 text-mute">
-                        <span>chat_logs (对话审查日志)</span>
+                        <span>chat_logs (对话审查流水)</span>
                         <span className="font-mono text-ink">{telemetry.database.tables.chatsTotal} 行</span>
                       </div>
                       <div className="flex justify-between border-b border-line/50 pb-1 text-mute">
@@ -843,6 +1107,14 @@ export default function CuratorPage() {
                 >
                   检索
                 </button>
+                <button
+                  onClick={() => exportJson(chats.items, `suanle_chats_page${chats.page}.json`)}
+                  className="flex items-center gap-1 rounded-xl border border-line bg-paper px-3 py-2 text-[12px] text-ink-2 transition hover:bg-paper-2"
+                  title="导出当前页记录为 JSON 文件"
+                >
+                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                  <span>导出JSON</span>
+                </button>
               </div>
             </div>
 
@@ -853,7 +1125,7 @@ export default function CuratorPage() {
                   <thead className="border-b border-line bg-paper-2 text-[11.5px] font-medium text-mute">
                     <tr>
                       <th className="py-3 pl-4 pr-2">时刻</th>
-                      <th className="px-3 py-3">缘友 / IP</th>
+                      <th className="px-3 py-3">缘友 / 归属地溯源</th>
                       <th className="px-3 py-3">模型 / Tokens</th>
                       <th className="px-3 py-3">提问概要</th>
                       <th className="px-3 py-3">解盘点拨</th>
@@ -889,7 +1161,14 @@ export default function CuratorPage() {
                               >
                                 {item.anonId.slice(0, 10)}…
                               </div>
-                              <div className="text-[10px] text-mute">{item.ip}</div>
+                              <div className="flex items-center gap-1 text-[10.5px] text-mute">
+                                <MapPin className="h-3 w-3 text-seal/80 shrink-0" />
+                                <span className="font-mono text-[10px]">{item.ip}</span>
+                                <span>·</span>
+                                <span className="truncate max-w-[120px]" title={item.geo || "未知"}>
+                                  {item.geo || "未知"}
+                                </span>
+                              </div>
                             </td>
                             <td className="px-3 py-3">
                               <div className="flex items-center gap-1.5">
@@ -902,10 +1181,10 @@ export default function CuratorPage() {
                               </div>
                               <div className="font-mono text-[10px] text-mute">{item.tokens} tok</div>
                             </td>
-                            <td className="max-w-[220px] truncate px-3 py-3 text-ink" title={item.userPrompt}>
+                            <td className="max-w-[200px] truncate px-3 py-3 text-ink" title={item.userPrompt}>
                               {item.userPrompt}
                             </td>
-                            <td className="max-w-[280px] truncate px-3 py-3 text-mute" title={item.assistantReply}>
+                            <td className="max-w-[260px] truncate px-3 py-3 text-mute" title={item.assistantReply}>
                               {item.assistantReply.replace(/\n+/g, " ").slice(0, 80)}
                             </td>
                             <td className="py-3 pl-2 pr-4 text-right">
@@ -924,7 +1203,7 @@ export default function CuratorPage() {
                 </table>
               </div>
 
-              {/* 展开的详情展示 */}
+              {/* 展开的详情展示：支持 Markdown 富文本解析与 Raw 视图切换 */}
               {expandedChatId !== null && (
                 <div className="border-t border-line bg-paper-2/40 p-5">
                   {(() => {
@@ -933,20 +1212,71 @@ export default function CuratorPage() {
                     return (
                       <div className="space-y-4 rounded-xl border border-line bg-card p-5">
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3 text-[12px] text-mute">
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap items-center gap-3">
                             <span>
                               缘友：<b className="font-mono text-ink">{item.anonId}</b>
                             </span>
-                            <span>
-                              IP：<b className="font-mono text-ink">{item.ip}</b>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-seal" />
+                              <b className="font-mono text-ink">{item.ip}</b>
+                              <span>({item.geo || "未知归属"})</span>
                             </span>
                             <span>
                               模型：<b className="font-mono text-ink">{item.model}</b>
                             </span>
+                            <span>
+                              算力：<b className="font-mono text-ink">{item.tokens} tok</b>
+                            </span>
                           </div>
-                          <div>时刻：{formatTime(item.createdAt)}</div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Markdown / Raw 切换 */}
+                            <div className="flex items-center rounded-lg border border-line bg-paper p-0.5 text-[11px]">
+                              <button
+                                onClick={() => setViewMode("markdown")}
+                                className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+                                  viewMode === "markdown"
+                                    ? "bg-card font-medium text-ink shadow-xs"
+                                    : "text-mute hover:text-ink"
+                                }`}
+                              >
+                                <Eye className="h-3 w-3" />
+                                <span>排版视图</span>
+                              </button>
+                              <button
+                                onClick={() => setViewMode("raw")}
+                                className={`flex items-center gap-1 rounded-md px-2 py-1 transition ${
+                                  viewMode === "raw"
+                                    ? "bg-card font-medium text-ink shadow-xs"
+                                    : "text-mute hover:text-ink"
+                                }`}
+                              >
+                                <Code className="h-3 w-3" />
+                                <span>源码视图</span>
+                              </button>
+                            </div>
+
+                            {/* 复制全文 */}
+                            <button
+                              onClick={() => copyToClipboard(`提问：\n${item.userPrompt}\n\n回答：\n${item.assistantReply}`, item.id)}
+                              className="flex items-center gap-1 rounded-lg border border-line bg-paper px-2 py-1 text-[11px] text-mute hover:text-ink"
+                            >
+                              {copiedId === item.id ? <Check className="h-3 w-3 text-sage" /> : <Copy className="h-3 w-3" />}
+                              <span>{copiedId === item.id ? "已复制" : "复制案卷"}</span>
+                            </button>
+
+                            {/* 单条导出 */}
+                            <button
+                              onClick={() => exportJson(item, `chat_${item.id}_${item.anonId.slice(0, 8)}.json`)}
+                              className="flex items-center gap-1 rounded-lg border border-line bg-paper px-2 py-1 text-[11px] text-mute hover:text-ink"
+                            >
+                              <FileText className="h-3 w-3" />
+                              <span>导出JSON</span>
+                            </button>
+                          </div>
                         </div>
 
+                        {/* 命盘背景档案 */}
                         {(item.profileName || item.profileBirth || item.profileGender) && (
                           <div className="rounded-lg border border-line/60 bg-paper p-3 text-[12px]">
                             <span className="font-medium text-ink">盘面背景档案：</span>
@@ -962,6 +1292,7 @@ export default function CuratorPage() {
                           </div>
                         )}
 
+                        {/* 提问全文 */}
                         <div>
                           <div className="text-[12px] font-bold text-ink">提问全文：</div>
                           <div className="mt-1.5 whitespace-pre-wrap rounded-xl border border-line bg-paper p-3.5 text-[13px] leading-relaxed text-ink">
@@ -969,11 +1300,26 @@ export default function CuratorPage() {
                           </div>
                         </div>
 
+                        {/* AI 回复全文 (支持 Markdown 解析与样式定制) */}
                         <div>
-                          <div className="text-[12px] font-bold text-ink">AI 回复全文：</div>
-                          <div className="mt-1.5 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-xl border border-line bg-paper p-3.5 font-song text-[13.5px] leading-relaxed text-ink-2">
-                            {item.assistantReply}
+                          <div className="flex items-center justify-between text-[12px] font-bold text-ink">
+                            <span>AI 回复全文：</span>
+                            <span className="text-[11px] font-normal text-mute">
+                              {viewMode === "markdown" ? "已启用 Markdown 语法高亮排版" : "纯文本原始内容"}
+                            </span>
                           </div>
+
+                          {viewMode === "markdown" ? (
+                            <div className="mt-1.5 max-h-[480px] overflow-y-auto rounded-xl border border-line bg-paper p-4 font-song text-[13.5px] leading-relaxed text-ink-2">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                {item.assistantReply}
+                              </ReactMarkdown>
+                            </div>
+                          ) : (
+                            <pre className="mt-1.5 max-h-[480px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-line bg-paper p-4 font-mono text-[12px] leading-relaxed text-ink-2">
+                              {item.assistantReply}
+                            </pre>
+                          )}
                         </div>
 
                         {item.userAgent && (
@@ -1016,8 +1362,8 @@ export default function CuratorPage() {
         {/* ==================== TAB 3: 纸篓心事 (LET-GO ARCHIVE) ==================== */}
         {activeTab === "letgos" && (
           <div className="space-y-4">
-            {/* 搜索 */}
-            <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-4">
+            {/* 搜索与导出 */}
+            <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3.5 top-3 h-4 w-4 text-mute" />
                 <input
@@ -1030,7 +1376,7 @@ export default function CuratorPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <span className="text-[12px] text-mute">
                   累计丢弃 <b className="font-song text-ink">{letgos.total}</b> 件放不下的事
                 </span>
@@ -1040,10 +1386,18 @@ export default function CuratorPage() {
                 >
                   检索
                 </button>
+                <button
+                  onClick={() => exportJson(letgos.items, `suanle_letgos_page${letgos.page}.json`)}
+                  className="flex items-center gap-1 rounded-xl border border-line bg-paper px-3 py-2 text-[12px] text-ink-2 transition hover:bg-paper-2"
+                  title="导出本页纸篓心事"
+                >
+                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                  <span>导出JSON</span>
+                </button>
               </div>
             </div>
 
-            {/* 心事便签瀑布流 */}
+            {/* 心事便签瀑布流 (带 IP 归属地) */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {letgos.items.length === 0 ? (
                 <div className="col-span-full py-16 text-center text-mute">纸篓中暂无记录</div>
@@ -1068,7 +1422,10 @@ export default function CuratorPage() {
                     <div className="mt-5 border-t border-line/60 pt-3 text-[10.5px] text-mute">
                       <div className="flex items-center justify-between">
                         <span className="font-mono">{formatTime(item.createdAt)}</span>
-                        <span>{item.ip}</span>
+                        <div className="flex items-center gap-1" title={item.geo || item.ip}>
+                          <MapPin className="h-3 w-3 text-seal/70" />
+                          <span className="truncate max-w-[100px]">{item.geo || item.ip}</span>
+                        </div>
                       </div>
                       <div className="mt-0.5 truncate font-mono text-[9.5px] text-mute/80">
                         {item.anonId || "游客"}
@@ -1109,7 +1466,7 @@ export default function CuratorPage() {
         {/* ==================== TAB 4: 缘友台账与风控 (USERS REGISTRY) ==================== */}
         {activeTab === "users" && (
           <div className="space-y-4">
-            {/* 搜索 */}
+            {/* 搜索与导出 */}
             <div className="flex items-center justify-between rounded-2xl border border-line bg-card p-4">
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3.5 top-3 h-4 w-4 text-mute" />
@@ -1123,15 +1480,25 @@ export default function CuratorPage() {
                 />
               </div>
 
-              <button
-                onClick={() => void loadUsers(1, userSearch)}
-                className="rounded-xl bg-ink px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink/90"
-              >
-                检索
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => void loadUsers(1, userSearch)}
+                  className="rounded-xl bg-ink px-4 py-2 text-[13px] font-medium text-paper transition hover:bg-ink/90"
+                >
+                  检索
+                </button>
+                <button
+                  onClick={() => exportJson(users.items, `suanle_users_page${users.page}.json`)}
+                  className="flex items-center gap-1 rounded-xl border border-line bg-paper px-3 py-2 text-[12px] text-ink-2 transition hover:bg-paper-2"
+                  title="导出缘友台账"
+                >
+                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                  <span>导出JSON</span>
+                </button>
+              </div>
             </div>
 
-            {/* 用户列表 */}
+            {/* 用户列表 (带详细 IP 归属地) */}
             <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[12.5px]">
@@ -1143,7 +1510,7 @@ export default function CuratorPage() {
                       <th className="px-3 py-3 text-right">丢纸篓</th>
                       <th className="px-3 py-3 text-right">消耗 Tokens</th>
                       <th className="px-3 py-3 text-right">随喜功德</th>
-                      <th className="px-3 py-3">IP 足迹</th>
+                      <th className="px-3 py-3">IP 足迹与归属地</th>
                       <th className="px-3 py-3">最近活跃</th>
                       <th className="py-3 pl-2 pr-4 text-right">风控处置</th>
                     </tr>
@@ -1184,8 +1551,20 @@ export default function CuratorPage() {
                             {u.totalMeritCents > 0 ? `¥${(u.totalMeritCents / 100).toFixed(2)}` : "—"}
                           </td>
                           <td className="px-3 py-3 text-[11px] text-mute">
-                            <div>初访：{u.firstIp || "未知"}</div>
-                            <div>最近：{u.lastIp || "未知"}</div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-mute/80">最近：</span>
+                              <span className="font-mono text-ink">{u.lastIp || "未知"}</span>
+                              <span className="text-mute truncate max-w-[120px]" title={u.lastGeo}>
+                                ({u.lastGeo || "未知"})
+                              </span>
+                            </div>
+                            {u.firstIp && u.firstIp !== u.lastIp && (
+                              <div className="flex items-center gap-1 text-[10px] text-mute/70">
+                                <span>初访：</span>
+                                <span>{u.firstIp}</span>
+                                <span>({u.firstGeo || "未知"})</span>
+                              </div>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-mute">
                             {formatTime(u.lastActiveAt)}

@@ -18,12 +18,18 @@ export interface SystemTelemetry {
       cores: number;
       loadAvg: [number, number, number];
       loadPercent1m: number;
+      coresDetail: { index: number; speed: number; usagePercent: number }[];
     };
     memory: {
       totalBytes: number;
       freeBytes: number;
+      availableBytes: number;
       usedBytes: number;
       usedPercent: number;
+      buffersBytes?: number;
+      cachedBytes?: number;
+      swapTotalBytes?: number;
+      swapUsedBytes?: number;
       processRssBytes: number;
       processHeapUsedBytes: number;
       processHeapTotalBytes: number;
@@ -33,6 +39,10 @@ export interface SystemTelemetry {
       freeBytes: number;
       usedBytes: number;
       usedPercent: number;
+    } | null;
+    network: {
+      rxBytes: number;
+      txBytes: number;
     } | null;
   };
   database: {
@@ -50,8 +60,59 @@ export interface SystemTelemetry {
       meritTotalCents: number;
       tokensTotal: number;
     };
+    hourlyTrends: {
+      chats: { hour: string; count: number }[];
+      tokens: { hour: string; count: number }[];
+    };
   };
   llm: LLMTelemetryInfo;
+}
+
+function parseMeminfo(): {
+  availableBytes?: number;
+  buffersBytes?: number;
+  cachedBytes?: number;
+  swapTotalBytes?: number;
+  swapUsedBytes?: number;
+} {
+  try {
+    const raw = fs.readFileSync("/proc/meminfo", "utf-8");
+    const get = (key: string) => {
+      const m = raw.match(new RegExp(`${key}:\\s+(\\d+)\\s+kB`));
+      return m ? parseInt(m[1], 10) * 1024 : undefined;
+    };
+    const swapTotal = get("SwapTotal");
+    const swapFree = get("SwapFree");
+    const swapUsed = swapTotal !== undefined && swapFree !== undefined ? swapTotal - swapFree : undefined;
+    return {
+      availableBytes: get("MemAvailable"),
+      buffersBytes: get("Buffers"),
+      cachedBytes: get("Cached"),
+      swapTotalBytes: swapTotal,
+      swapUsedBytes: swapUsed,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function parseNetdev(): { rxBytes: number; txBytes: number } | null {
+  try {
+    const raw = fs.readFileSync("/proc/net/dev", "utf-8");
+    const lines = raw.split("\n");
+    let rxTotal = 0;
+    let txTotal = 0;
+    for (const line of lines) {
+      const match = line.trim().match(/^(eth\d+|en\w+|wlan\d+):\s*(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)/);
+      if (match) {
+        rxTotal += parseInt(match[2], 10);
+        txTotal += parseInt(match[3], 10);
+      }
+    }
+    return rxTotal > 0 || txTotal > 0 ? { rxBytes: rxTotal, txBytes: txTotal } : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getSystemTelemetry(): Promise<SystemTelemetry> {
@@ -61,9 +122,22 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
   const loadAvg = os.loadavg() as [number, number, number];
   const loadPercent1m = Math.min(100, Math.round((loadAvg[0] / cores) * 100));
 
+  const coresDetail = cpus.map((c, i) => {
+    const total = c.times.user + c.times.nice + c.times.sys + c.times.idle + c.times.irq;
+    const active = total - c.times.idle;
+    return {
+      index: i,
+      speed: c.speed,
+      usagePercent: total > 0 ? Math.round((active / total) * 100) : 0,
+    };
+  });
+
   const totalmem = os.totalmem();
   const freemem = os.freemem();
-  const usedMem = totalmem - freemem;
+  const meminfo = parseMeminfo();
+
+  const availableBytes = meminfo.availableBytes ?? freemem;
+  const usedMem = totalmem - availableBytes;
   const usedMemPercent = Math.min(100, Math.round((usedMem / totalmem) * 100));
 
   const memUsage = process.memoryUsage();
@@ -84,6 +158,8 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
     /* 某些虚拟环境可能无法 statfs */
   }
 
+  const network = parseNetdev();
+
   // 2. 数据库态势指标
   let dbStatus: "connected" | "disconnected" = "disconnected";
   let dbSize = "0 MB";
@@ -100,9 +176,14 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
     tokensTotal: 0,
   };
 
+  const hourlyTrends: SystemTelemetry["database"]["hourlyTrends"] = {
+    chats: [],
+    tokens: [],
+  };
+
   if (pool) {
     try {
-      const [sizeRes, connRes, statsRes] = await Promise.allSettled([
+      const [sizeRes, connRes, statsRes, chatsHourlyRes, tokensHourlyRes] = await Promise.allSettled([
         db.execute(sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`),
         db.execute(sql`SELECT count(*)::int as count FROM pg_stat_activity WHERE datname = current_database()`),
         db.execute(sql`
@@ -116,6 +197,24 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
             (SELECT count(*)::int FROM orders) as orders_total,
             (SELECT COALESCE(sum(amount_cents), 0)::int FROM orders) as merit_cents,
             (SELECT COALESCE(sum(tokens), 0)::int FROM usage_log) as tokens_total
+        `),
+        db.execute(sql`
+          SELECT 
+            to_char(date_trunc('hour', created_at), 'HH24:00') as hr,
+            count(*)::int as count
+          FROM chat_logs
+          WHERE created_at >= NOW() - INTERVAL '24 hours'
+          GROUP BY 1
+          ORDER BY 1
+        `),
+        db.execute(sql`
+          SELECT 
+            to_char(date_trunc('hour', created_at), 'HH24:00') as hr,
+            COALESCE(sum(tokens), 0)::int as tokens
+          FROM usage_log
+          WHERE created_at >= NOW() - INTERVAL '24 hours'
+          GROUP BY 1
+          ORDER BY 1
         `),
       ]);
 
@@ -139,6 +238,20 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
         tables.meritTotalCents = Number(row.merit_cents || 0);
         tables.tokensTotal = Number(row.tokens_total || 0);
       }
+
+      if (chatsHourlyRes.status === "fulfilled") {
+        hourlyTrends.chats = chatsHourlyRes.value.rows.map((r) => ({
+          hour: String((r as { hr?: string }).hr || ""),
+          count: Number((r as { count?: number }).count || 0),
+        }));
+      }
+
+      if (tokensHourlyRes.status === "fulfilled") {
+        hourlyTrends.tokens = tokensHourlyRes.value.rows.map((r) => ({
+          hour: String((r as { hr?: string }).hr || ""),
+          count: Number((r as { tokens?: number }).tokens || 0),
+        }));
+      }
     } catch {
       dbStatus = "disconnected";
     }
@@ -160,23 +273,31 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
         cores,
         loadAvg,
         loadPercent1m,
+        coresDetail,
       },
       memory: {
         totalBytes: totalmem,
         freeBytes: freemem,
+        availableBytes,
         usedBytes: usedMem,
         usedPercent: usedMemPercent,
+        buffersBytes: meminfo.buffersBytes,
+        cachedBytes: meminfo.cachedBytes,
+        swapTotalBytes: meminfo.swapTotalBytes,
+        swapUsedBytes: meminfo.swapUsedBytes,
         processRssBytes: memUsage.rss,
         processHeapUsedBytes: memUsage.heapUsed,
         processHeapTotalBytes: memUsage.heapTotal,
       },
       disk,
+      network,
     },
     database: {
       status: dbStatus,
       dbSize,
       activeConnections,
       tables,
+      hourlyTrends,
     },
     llm,
   };
