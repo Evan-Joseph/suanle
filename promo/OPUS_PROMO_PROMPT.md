@@ -1,124 +1,108 @@
 # Role & Creative Mission
-你是一位屡获国际大奖的独立创意总监（Creative Director）、资深动态设计大师（Motion Designer）与代码驱动视频工程师（Remotion / Programmatic Video Engineer）。
+你是一位享誉业界的独立创意总监（Creative Director）、资深电影剪辑与动态视觉大师（Cinematic Motion Designer）兼顶级代码视频工程师（Programmatic Video Engineer / Remotion Specialist）。
 
-你的终极使命是：为现象级东方反内耗心智品牌——**《算了 · Suanle》**（官网：`https://www.suanle.cc/` ｜ 仓库：`https://github.com/Evan-Joseph/suanle.git`），构思、编排并完整编写一套影视级、富有灵魂共鸣的程序化品牌宣传片工程代码（50 秒，1080P / 60FPS，基于 Remotion 框架），做到“拿到代码即可无缝导出生产级高质量视频成片”。
+你的终极使命是：为现象级东方反内耗心智品牌——**《算了 · Suanle》**（官方网站：`https://www.suanle.cc/`），构思、编导并完整实现一套高画质、具有强烈情绪共鸣与东方极简美学的程序化品牌宣传片工程代码（推荐 1080P / 60FPS，基于 Remotion 或 Canvas/FFmpeg 体系）。
+
+**核心交付原则**：我们拿到代码即可一键无缝导出影视级视频成片（MP4），绝非设计一个交互式 Web 网页。
 
 ---
 
-## 一、 品牌哲学与产品灵魂（Brand DNA）
+## 零、 创作者最高自主权（Creative Freedom & Directorial Autonomy）
+
+我们对你的艺术审美、导演构思与技术实力抱有绝对的信任：
+1. **剧本与文案全权由你创作**：从概念起承转合、镜头语言、叙事节奏、旁白台词到视觉隐喻，**完全由你自主编导**。我们在提示词中不设置任何预设剧本分镜，连“参考架构”也不做限定，绝不画地为牢。
+2. **充分发挥全部实力**：请尽情施展你的镜头推拉摇移、转场缓动（Spring Damping / Ease Curves）、音画卡点、空间透视（Perspective / Tilt）与水墨光影质感，打造震撼人心的品牌大片。
+
+---
+
+## 一、 品牌哲学与审美基准（Brand DNA & Aesthetics）
 
 - **品牌 Slogan**：**“算一算，然后，算了。”**
-- **核心定位**：一个懂八字、紫微、六爻、塔罗，更懂人心的老朋友。陪你把心里那团乱麻理一理，然后，算了。
-- **东方哲学双关**：
+- **哲学内核**：
   - “算”是探索自我、洞悉周期、理清纷扰；
-  - “算了”则是当代青年终止精神内耗、接纳不完美、轻装前行的最高心法。
-- **美学基准（宋代极简美学）**：
+  - “算了”则是当代青年与中年人终止精神内耗、接纳不完美、与自己和解的最高东方心法。
+- **产品灵魂**：一个懂八字、紫微、六爻、塔罗，更懂人心的老朋友。没有神棍式的故弄玄虚，没有贩卖焦虑的恐吓，只有温茶对坐的释怀与解压。
+- **宋代极简美学色盘**：
   - 生宣米白（`#FAF9F6`）、徽墨温黑（`#2B2B2B`）、朱砂印红（`#C4553A`）、古拙泥金（`#A9844A`）、修竹清绿（`#74866A`）、晴岚淡灰（`#E8E3D9`）。
-  - **呼吸感与留白**：拒绝廉价赛博朋克、拒绝土味算命修仙、拒绝恐吓式贩卖焦虑。呈现如水墨晕染、热茶升腾、孤灯长明的温润与通透。
-  - **纯净用户体验**：宣传片只面向真实用户的情感共鸣与产品交互，**严禁使用任何后台、管理、合规、风控等防御性内部文案**。
+  - 呈现如生宣漫墨、热茶升腾、孤灯长明的温润与通透。拒绝廉价霓虹赛博朋克、拒绝土味修仙。
+- **纯净用户体验（红线）**：宣传片纯粹面向真实用户的心灵共鸣与产品体验，**严禁使用任何后台、管理、合规、审计、风控等防御性内部文案**。
+- **宣传片硬性元素（必须自然呈现）**：
+  1. 官方访问域名：`https://www.suanle.cc/`
+  2. 平台专属访问二维码（已备妥内嵌朱砂红「算」印章的矢量与高清图）
 
 ---
 
-## 二、 仓库素材准备与沙盒环境接入（Repository Assets & Sandbox）
+## 二、 GitHub 仓库拉取与素材盘点（Repo Ingestion）
 
-本项目的全部视网膜真实录屏、高清界面截图、纯自然声学音轨与官方矢量素材均已开源提交至 GitHub 仓库：
-🔗 **GitHub 仓库地址**：`https://github.com/Evan-Joseph/suanle.git`
+所有素材均已保存在官方 GitHub 仓库中，录屏与截图均在真实运行的生产环境无损截取，规格标准、无拉伸变形、无截断、无虚构 UI。
 
-在你的沙盒环境（如 Arena Code 模式环境）中，你可直接通过终端克隆仓库并盘点所有现成素材：
+请在你的沙盒环境中直接拉取仓库并盘点素材：
 ```bash
-git clone https://github.com/Evan-Joseph/suanle.git
-cd suanle
-ls -la promo/assets
+git clone https://github.com/Evan-Joseph/suanle.git .
+ls -la promo/assets/
 ```
 
-所有素材在仓库目录中结构清晰（同时映射至 `promo/assets/` 与 `public/promo/`），可直接在 Remotion 中通过 `staticFile("promo/...")` 或相对路径无损引用：
+### 1. 真实视网膜录屏视频（Real High-Res 60FPS Video Footage）
+*严格复用真实录制画面，绝非让模型重新生成或用 CSS 模拟虚构 UI：*
+- `promo/assets/video/01_home_navigation.mp4`（860 × 1864，14.3s）：移动端首页交互巡礼、宣纸茶馆呼吸感、今日运势与探索导航。
+- `promo/assets/video/02_chat_consultation.mp4`（860 × 1864，10.8s）：老友对话问卜实录、思维链展开、铜钱翻转落案结卦与白话心法流式生成。
+- `promo/assets/video/03_letgo_paper_crumple.mp4`（860 × 1864，16.5s）：**「算了」纸篓灵魂交互**。写下心结信笺、点击“揉掉它”、物理挤压剧烈褶皱成团、空中拖拽与抛物线入篓。
+- `promo/assets/video/04_share_card_with_qr.mp4`（860 × 1864，8.0s）：禅意卡片抽取生成、朱砂印章沉稳盖落、动态渲染平台专属二维码。
+- `promo/assets/video/05_coins_divination.mp4`（860 × 1864，20.8s）：乾隆通宝三枚青铜古钱 3D 物理翻转翻落、逐爻成卦与解卦实录。
 
-### 1. 真实视网膜录屏视频（Real 60FPS Video Footage，严格保证真实 UI，绝非虚构）
-- `promo/assets/video/01_home_navigation.mp4`：860×1864 真实移动端首页交互与老友茶馆沉浸式漫游（14.3s）。
-- `promo/assets/video/02_chat_consultation.mp4`：860×1864 真实老友茶局对话问卜、思维链展开、卦象与白话心法流式生成（10.8s）。
-- `promo/assets/video/03_letgo_paper_crumple.mp4`：860×1864 真实信笺书写心事、剧烈揉皱成团与物理投掷落篓（16.5s）。
-- `promo/assets/video/04_share_card_with_qr.mp4`：860×1864 真实抽取卡片、朱砂印章盖落、生成带官方二维码的分享长卡（8.0s）。
-- `promo/assets/video/05_coins_divination.mp4`：860×1864 乾隆通宝三枚古钱 3D 物理翻转翻落、逐爻成卦与解卦实录（20.8s）。
+### 2. 高清界面快照与专业图谱（Retina UI & Charts）
+- `promo/assets/prod_mobile_home.png`（860 × 1864 / 430 × 932）：移动端主界面全貌。
+- `promo/assets/ui_chat_view.png`（860 × 1864）：老友茶局对话、古铜钱排卦与温暖解盘。
+- `promo/assets/ui_coins_hexagram.png`（860 × 1864）：六爻成卦实机界面（本卦、变卦、动爻标注清晰）。
+- `promo/assets/ui_bazi_chart.png`（860 × 1864）：八字四柱与紫微排盘专业图谱。
+- `promo/assets/ui_kline.png`（860 × 1864）：壮阔的人生大运 K 线图谱与十二流年运势波浪。
+- `promo/assets/ui_letgo_write.png`（860 × 1864）：纸篓心事信笺书写（“写下来，揉掉它”）。
+- `promo/assets/ui_letgo_ball.png`（860 × 1864）：揉碎纸团在空中拖拽瞄准与竹编纸篓界面。
+- `promo/assets/ui_letgo_done.png`（860 × 1864）：纸团入篓、“今天算了 X 件”与豁然开朗金句。
 
-### 2. 高清矢量与界面快照（High-Res UI & Visual Assets）
-- `promo/assets/brand/logo.svg` / `logo.png`：官方矢量标识（坤卦六断爻与微笑圆弧双关，纯黑/朱砂质感）。
-- `promo/assets/brand/suanle_qrcode.svg` / `suanle_qrcode.png`：**平台官方二维码**（直达 `https://www.suanle.cc/`，中心嵌入朱砂红「算」印章）。
-- `promo/assets/prod_mobile_home.png`：移动端主界面全貌实机截图。
-- `promo/assets/ui_chat_view.png`：860×1864 聊天问卜、三枚铜钱翻落、老友对话解盘真实 UI。
-- `promo/assets/ui_coins_hexagram.png`：860×1864 六爻成卦实机截图（本卦、变卦、动爻标注）。
-- `promo/assets/ui_bazi_chart.png`：860×1864 八字排盘与紫微斗数罗盘排盘真实 UI。
-- `promo/assets/ui_kline.png`：860×1864 人生大运 K 线图、十二流月运势浪潮起伏交互图谱。
-- `promo/assets/ui_letgo_write.png`：860×1864 纸篓心事信笺书写（“写下来，揉掉它”）。
-- `promo/assets/ui_letgo_ball.png`：860×1864 揉碎纸团在空中拖拽瞄准、竹编纸篓物理交互界面。
-- `promo/assets/ui_letgo_done.png`：860×1864 纸团入篓、金句回响与“今天算了 X 件”释怀界面。
+### 3. 木版水印宣纸分享长卡（Retina Share Cards with Platform QR）
+- `promo/assets/card_aphorism.png`（1080 × 1050）：极简箴言木刻卡，内嵌朱砂红「算」印章与官方访问二维码。
+- `promo/assets/card_dialogue.png`（1080 × 1256）：经典老友对话金句卡，内嵌朱砂红「算」印章与官方访问二维码。
+- `promo/assets/card_letgo.png`（1080 × 1064）：纸篓释怀信笺卡，内嵌朱砂红「算」印章与官方访问二维码。
+- `promo/assets/card_annual.png`（1080 × 1128）：大运年度长卡，宣纸底色与官方访问二维码。
 
-### 3. 木版水印宣纸分享卡（Retina Share Cards with Platform QR）
-- `promo/assets/card_dialogue.png`：1080×1220 经典老友对话问心卡，含官方二维码。
-- `promo/assets/card_letgo.png`：1080×1080 纸篓释怀信笺卡，含官方二维码。
-- `promo/assets/card_annual.png`：1080×1220 大运年度长卡，宣纸底色与官方二维码。
-- `promo/assets/card_aphorism.png`：1080×1080 极简单句箴言木刻卡，含官方二维码。
+### 4. 品牌矢量与专属二维码（Brand & QR Assets）
+- `promo/assets/brand/logo.svg` / `logo.png`（1024 × 1024）：官方品牌矢量标识（坤卦六断爻与微笑圆弧双关，纯黑/朱砂质感）。
+- `promo/assets/brand/suanle_qrcode.svg` / `suanle_qrcode.png`（1024 × 1024）：**官方引流二维码**，直达 `https://www.suanle.cc/`，中心嵌入朱砂红「算」字方印。
 
-### 4. 纯自然声学音轨与拟音（Acoustic Audio Stems & SFX，真实录音，拒绝 WebAudio 合成音）
-- `promo/assets/audio/suanle_zen_bgm.mp3`：**主选配乐《晓寺晨曦》**（CC0-1.0，85.7 BPM）。晨钟悠远、竹笛悠扬、**11.47s 温暖低音鼓点爆发（Kick Beat Drop）**，融合当代 Lo-Fi 律动与东方禅意。
-- `promo/assets/audio/moon_through_bamboo.mp3`：备选配乐《竹间月影》（CC0-1.0，70.6 BPM），古筝古琴与深沉温润 Lo-Fi。
-- `promo/assets/audio/bgm_suanle_zen.mp3`：49.3s 精准对齐 50 秒成片的预混母带（前 37 秒古琴《阳关三叠》，38 秒切入空灵西藏颂钵）。
-- `promo/assets/audio/water_drop.mp3`：清冽一滴水声入墨。
-- `promo/assets/audio/coin_clatter.mp3`：三枚青铜钱在木桌翻滚碰撞的清脆震颤。
-- `promo/assets/audio/paper_crumple.mp3`：真实纸张剧烈揉皱解压 ASMR。
-- `promo/assets/audio/singing_bowl_strike.mp3`：空灵沉浑西藏颂钵（Singing Bowl）重锤敲击与 6 秒悠长余音回荡。
-
----
-
-## 三、 导演分镜叙事参考架构 (The 5-Act Narrative Arc)
-
-视频规格：1920 × 1080 ｜ 60 FPS (总长 50 秒，共 3000 帧)。请参考仓库中 `promo/STORYBOARD.md` 与 `promo/AUDIO_BEATS.md`，你拥有完全的导演自主权，可对镜头、文案与视听节奏自由升华：
-
-### 第一幕：叩问与迷惘 (0s – 8s / 0 – 480 帧)
-- **视觉**：纯净微粗糙的宣纸纹理上，一滴浓黑徽墨垂直滴落，水墨柔和自然漫散。数行深夜叩问的极简半透明字体随墨迹浮动消弭（“今年考研能上岸吗？”、“换工作是对还是错？”、“我的人生为什么总在打转？”）。
-- **旁白字幕**：“人这一生，为什么总想算一算？算前程、算感情、算流年……算那个总在深夜敲打心房的问号。”
-- **声音与动效**：0s 水滴入墨（`water_drop.mp3`），主旋律《晓寺晨曦》前奏晨钟悠远起音；水墨扩散插值，微距缓慢推入。
-
-### 第二幕：温茶与对坐 (8s – 20s / 480 – 1200 帧)
-- **视觉**：水墨过渡至微透视浮动的手机屏幕（引用实录视频 `01_home_navigation.mp4` / `02_chat_consultation.mp4` / `05_coins_divination.mp4`）。三枚青铜钱在空中立体翻转，11.47s 鼓点爆发瞬间清脆落案结出卦象。老友温茶对坐的点拨文字渐进呈现（“天往上升，水往低流……你心里正跟自己较劲呢。明天给脑子放半天假吧。”）。
-- **旁白字幕**：“但这里没有冷冰冰的算命机器，只有一位为你温好热茶的老朋友。懂八字、懂六爻，更懂你眼底的疲惫。”
-- **声音与动效**：11.47s 主鼓点切入，13.2s 铜钱翻落回响（`coin_clatter.mp3`）；手机微 3D 浮动（Perspective Tilt + Floating Y）、铜钱抛物线下落震荡（Damping Spring）。
-
-### 第三幕：人生如浪潮 (20s – 32s / 1200 – 1920 帧)
-- **视觉**：手机界面平滑展开为壮阔的「人生大运 K 线图谱」（`ui_kline.png`）。泥金色的运势起伏曲线如千里江山图般动态延伸绘制，掠过高山与深谷，伴随柔和呼吸脉冲光晕。
-- **旁白字幕**：“看透了周期的起起伏伏，你就会明白：低谷时蓄力，高峰时尽兴。起落本是常态，心也就定下来了。”
-- **声音与动效**：笛声婉转与 Lo-Fi 弦乐流淌；SVG 描边动态生长（`strokeDashoffset` 插值）、镜头平滑横向追踪（Camera Pan）。
-
-### 第四幕：灵魂交互：揉掉它，丢进纸篓 (32s – 44s / 1920 – 2640 帧) —— **全片最高潮**
-- **视觉**：聚焦于信笺上写下的真实心事：“放不下昨晚的失眠与焦虑”。点击“揉掉它”——信笺伴随强烈的褶皱挤压，物理扭曲凝聚成一颗立体纸团（实录视频 `03_letgo_paper_crumple.mp4`），随后划过一道优美而有张力的抛物线，“咚”地落入画面右下方的竹编纸篓！纸篓轻微反弹摇晃。
-- **高潮文案**：全屏骤然静止定格，唯有一行苍劲宋体大字浮现：**【揉掉它。算了。】**
-- **声音指引**：34.5s 剧烈揉纸声（`paper_crumple.mp3` ASMR） $\rightarrow$ 37.2s 破风入篓 $\rightarrow$ **38.0s 重中之重**：一声空灵、沉浑、余音缭绕长达 6 秒的**西藏颂钵（Singing Bowl）长鸣**（`singing_bowl_strike.mp3`），涤荡灵魂，全场静止。
-
-### 第五幕：微光与释怀 (44s – 50s / 2640 – 3000 帧) —— **品牌 CTA**
-- **视觉**：温暖生宣米色底，角落一盏长明灯芯微光静静摇曳。
-  - 左侧：中央朱砂印章稳稳盖下：【算了】，核心 Slogan 缓缓浮现：“算一算，然后，算了。”；
-  - 右侧：精致古典宣纸底框包裹的平台官方二维码优雅浮现（`suanle_qrcode.png`，内嵌朱砂红「算」印章），标注“扫码解惑”，微透视分享卡轻悬浮（`04_share_card_with_qr.mp4` / `card_dialogue.png`）；
-  - 底部居中清晰显现产品访问地址：`https://www.suanle.cc/`。
-- **旁白字幕**：“算了 · Suanle —— 算一算，然后，算了。”
-- **声音与动效**：44.0s 盖印厚重定格声，颂钵余音与微弱风铃缓缓淡出至绝对寂静。
+### 5. 纯自然声学音轨与拟音素材（Acoustic Audio Stems & Foley SFX）
+*全部采用经过听感审阅的高品质纯音乐与实录拟音，兼具当代年轻与中年群体审美，拒绝 WebAudio 简陋合成声：*
+- **主选配乐**：`promo/assets/audio/suanle_zen_bgm.mp3`（85.7 BPM / 114s）
+  - 《晓寺晨曦》（CC0-1.0 公共领域）：晨钟破晓、竹笛悠扬、温润木吉他，**11.47s 温暖低音鼓点爆发（Kick Beat Drop）**切入，现代东方 Lo-Fi 律动。
+- **备选配乐**：`promo/assets/audio/moon_through_bamboo.mp3`（70.6 BPM / 171s）
+  - 《竹间月影》（CC0-1.0 公共领域）：古筝古琴与深沉温润的 Lo-Fi 律动。
+- **预混母带**：`promo/assets/audio/bgm_suanle_zen.mp3`（49.3s）
+  - 前 37 秒古琴《阳关三叠》，38 秒无缝切入空灵西藏颂钵。
+- **古典散板名曲**：`promo/assets/audio/guqin_liushui.mp3`（《流水》）、`promo/assets/audio/guqin_yangguan.mp3`（《阳关三叠》）。
+- **实录拟音音效（Foley SFX）**：
+  - `promo/assets/audio/water_drop.mp3`（1.2s）：清冽水滴入墨。
+  - `promo/assets/audio/coin_clatter.mp3`（1.8s）：三枚青铜钱在木桌翻滚碰撞的清脆回响。
+  - `promo/assets/audio/paper_crumple.mp3`（2.5s）：真实纸张剧烈揉皱解压 ASMR。
+  - `promo/assets/audio/singing_bowl_strike.mp3`（6.5s）：空灵沉浑西藏颂钵重锤敲击与 6 秒谐波长鸣。
+  - `promo/assets/audio/singing_bowl.mp3`（12.0s）：颂钵低频持续共振长音。
+- **节拍时间线参考**：仓库中已包含详细的鼓点与时间戳对照表 `promo/AUDIO_BEATS.md`，可供精准卡点。
 
 ---
 
-## 四、 你的沙盒行动指南与技术要求
+## 三、 沙盒环境探索与工程构建指南（Sandbox & Architecture）
 
-1. **环境、技能与工具自主探索**：
-   - 充分探索并利用你当前沙盒环境中的可用工具、CLI、包管理器（pnpm/npm）与环境配置；
-   - 检查是否有相关 Remotion 技能或文档（例如调用 `npx remotion skills add` 或直接查看官方 Remotion 最佳实践）；
-   - 推荐在项目根目录下创建独立的视频工程目录（如 `promo-video/`）或直接在现有工程中组织；
-   - 推荐依赖：`remotion`、`@remotion/shapes`、`@remotion/noise`、`lucide-react`。
-2. **模块化解耦架构**：
-   - 将 5 幕镜头分别实现为独立的组件（`Scene1_Hook.tsx`, `Scene2_Tavern.tsx`, `Scene3_KLine.tsx`, `Scene4_LetGo.tsx`, `Scene5_EndCard.tsx`）；
-   - 集中管理色彩常量、物理弹簧配置（`constants.ts`）；
-   - 在 `Root.tsx` 与主 Composition 中统一调度时间线与音频节奏（参考 `promo/AUDIO_BEATS.md`）；
-   - 杜绝生硬突变，全片善用 `spring()` 弹簧阻尼与 `interpolate()` 缓动插值。
-3. **极具弹性的渲染与交付策略（关键）**：
-   - **若沙盒算力与环境支持渲染**：你可以直接执行 `npx remotion render MainPromo out/suanle_brand_promo.mp4`，生成真正的 MP4 视频成品！
-   - **若沙盒无头浏览器环境受限或计算超时**：无需强行在沙盒内耗尽超时跑渲染，**确保整套 Remotion 工程源码、资源链接、依赖配置完整自包含、类型无错**！用户将把整套工程直接同步到本地 Mac（Apple Silicon 芯片硬件加速），本地一键执行 `npm run build` / `npx remotion render` 完成极速 4K/60FPS 导出！
-4. **尽情发挥你的全部创意实力**：
-   - 脚本中的时间与视觉元素为基准骨架，你完全可以自行优化分镜脚本、文案细节、镜头推拉晃动（Handheld Camera Shake）、水墨粒子漫散或光影体积光（Volumetric Rays）！
+1. **探索并利用沙盒环境**：
+   - 充分探索当前沙盒的系统环境、Node/Python 运行时、包管理器（pnpm / npm / yarn）与已安装工具（如 ffmpeg）；
+   - 探索沙盒内是否有相关视频制作技能或文档（例如 remotion skills 或社区最佳实践）；
+   - 视频工程可直接搭建在独立目录（如 `promo-video/`）或复用现有工程结构；推荐使用 `remotion`、`@remotion/shapes`、`@remotion/noise`、`lucide-react` 等。
+2. **专业级动效实现规范**：
+   - 画面善用弹性物理曲线 `spring()` 配合恰当的阻尼（damping / stiffness），避免生硬机械的线性位移；
+   - 善用镜头缩放与微透视（Perspective 3D / Scale Interpolation），营造电影级纵深感；
+   - 视频素材切入与音效卡点保持呼吸感，张弛有度。
+3. **双轨交付策略（确保成片必定落地）**：
+   - **轨道 A（沙盒内直接导出）**：
+     若沙盒算力与环境支持 Headless Chromium 渲染，请直接执行渲染命令（如 `npx remotion render ... out/suanle_promo.mp4`），生成真正的 MP4 视频成片并报告输出文件！
+   - **轨道 B（本地无缝承接导出）**：
+     若 Arena 沙盒环境存在无头浏览器依赖受限、内存或执行超时限制，**请确保输出的完整视频工程源码无语法/类型报错、依赖声明齐全、资源路径正确**，并提供清晰自包含的本地导出指引（用户会将代码拉取到本地 Apple Silicon Mac，一键命令即可极速完成 4K/60FPS 最终渲染）。
 
-请全力以赴，为《算了 · Suanle》打造一部惊艳全网的东方禅意极简品牌宣传片！
+请发挥你的全部实力、美学底蕴与工程技艺，为《算了 · Suanle》打造一部惊艳全网的东方禅意极简品牌宣传大片！
