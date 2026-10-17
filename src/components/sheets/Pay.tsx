@@ -2,7 +2,6 @@
 
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { Check } from "lucide-react";
 import { profileHint, useApp, useUI } from "@/lib/store";
 import { fmt, LAMP_PLANS, localAnalogy, TIP_TIERS, yuan } from "@/lib/meter";
@@ -96,72 +95,70 @@ function PayStep({ cents, label, kind, tier, onPaid, onBack }: { cents: number; 
         ))}
       </div>
       <div className="mt-5 flex flex-col items-center">
-        <div className="relative grid h-[212px] w-[212px] place-items-center rounded-[24px] bg-white p-4 shadow-[0_6px_24px_rgba(0,0,0,0.08)]">
-          {cur?.url ? (
-            <QRCodeSVG
-              value={cur.url}
-              size={180}
-              level="M"
-              bgColor="#ffffff"
-              fgColor="#1a1a1a"
-              className="h-full w-full"
-            />
-          ) : (
-            <div className="skeleton h-full w-full rounded-xl" />
-          )}
+        {/* 原生真实二维码：确保移动端微信和浏览器可 100% 长按识别与保存 */}
+        <div className="relative flex h-[216px] w-[216px] items-center justify-center overflow-hidden rounded-[24px] bg-white p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
+          <img
+            src={ch === "wechat" ? "/pay/wechat.png" : "/pay/alipay.png"}
+            alt={ch === "wechat" ? "微信支付赞助码" : "支付宝赞助码"}
+            className="h-full w-full object-contain pointer-events-auto select-none"
+            draggable={false}
+          />
         </div>
-        <div className="mt-4 font-song text-[22px] font-bold">{yuan(cents)}</div>
-        <div className="mt-0.5 text-[13px] text-ink-2">{label}</div>
+        <div className="mt-4 font-song text-[24px] font-bold text-ink">{yuan(cents)}</div>
+        <div className="mt-0.5 text-[13px] font-medium text-ink-2">{label}</div>
 
-        {/* 智能情境提示与跳转超链接（检测到微信、支付宝或小程序时自动隐藏跳转超链接） */}
-        {env.inWeChat && ch === "wechat" && (
-          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-ink-2">
-            当前在微信内，<b>长按上方二维码</b>即可直接识别并随喜。
-          </p>
-        )}
-        {env.inWeChat && ch === "alipay" && (
-          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
-            当前在微信内，可截图保存上方二维码后，使用支付宝扫码。
-          </p>
-        )}
-        {env.inAlipay && ch === "alipay" && (
-          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-ink-2">
-            当前在支付宝内，<b>长按上方二维码</b>即可直接付款。
-          </p>
-        )}
-        {env.inAlipay && ch === "wechat" && (
-          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
-            当前在支付宝内，可截图保存上方二维码后，使用微信扫码。
-          </p>
-        )}
-        {env.inMiniProgram && (
-          <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-ink-2">
-            当前在小程序中，请长按或截图保存二维码进行支付。
-          </p>
-        )}
-        {!isInsideContainer && (
-          <>
-            <p className="mt-3 max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
-              {env.isMobile ? "长按保存二维码，或点击下方按钮直接打开 App 支付：" : `用手机${ch === "wechat" ? "微信" : "支付宝"}扫一扫，填上这个金额就好。`}
-            </p>
+        {/* 智能情境提示与长按指引 */}
+        {env.inWeChat ? (
+          <div className="mt-3.5 flex flex-col items-center">
+            {ch === "wechat" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span>✦ 长按上方二维码，选择「识别图中二维码」</span>
+              </span>
+            ) : (
+              <p className="max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
+                微信内无法直跳支付宝，可<b>长按保存上方图片</b>后使用支付宝扫码。
+              </p>
+            )}
+          </div>
+        ) : env.inAlipay ? (
+          <div className="mt-3.5 flex flex-col items-center">
+            {ch === "alipay" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-3 py-1 text-[12px] font-medium text-sky-600 dark:text-sky-400">
+                <span>✦ 长按上方二维码即可识别支付</span>
+              </span>
+            ) : (
+              <p className="max-w-[280px] text-center text-[12px] leading-relaxed text-mute">
+                当前在支付宝内，可<b>长按保存图片</b>后使用微信扫码。
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3.5 flex flex-col items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-ink/[0.05] px-3 py-1 text-[12px] text-ink-2">
+              <span>手机端长按图片保存或截图，也可直接打开 App：</span>
+            </span>
             {canShowJump && ch === "alipay" && alipayDeepLink && (
               <a
                 href={alipayDeepLink}
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[12.5px] font-medium text-on-ink shadow-sm transition hover:opacity-90 active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#1677ff] px-4 py-2 text-[12.5px] font-medium text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
               >
-                <span>打开支付宝 App 支付 →</span>
+                <span>直接打开支付宝 App 支付 →</span>
               </a>
             )}
             {canShowJump && ch === "wechat" && (
               <a
                 href="weixin://"
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-ink/[0.08] px-4 py-2 text-[12.5px] font-medium text-ink transition hover:bg-ink/[0.12] active:scale-[0.98]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#07c160] px-4 py-2 text-[12.5px] font-medium text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
               >
                 <span>打开微信（相册扫码）→</span>
               </a>
             )}
-          </>
+          </div>
         )}
+
+        <p className="mt-3 max-w-[290px] text-center text-[11.5px] leading-relaxed text-mute">
+          随喜随缘，丰俭由心。你的每一份心意都将用于抵扣大模型算力与服务器开销。
+        </p>
       </div>
       <div className="mt-5 space-y-1">
         <PrimaryButton

@@ -392,7 +392,7 @@ export const useUI = create<UIState>()((set) => ({
   letgoDraft: "",
   keyboard: false,
   deepArmed: false,
-  setTab: (tab) => set({ tab }),
+  setTab: (tab) => set({ tab, panel: null }),
   open: (sheet, payload) => set({ sheet, sheetPayload: payload ?? null }),
   close: () => set({ sheet: null }),
   openPanel: (panel) => set({ panel }),

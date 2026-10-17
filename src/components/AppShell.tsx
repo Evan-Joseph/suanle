@@ -13,6 +13,7 @@ import ToolPanels from "./tools/ToolPanels";
 import LetGoView from "./letgo/LetGoView";
 import MeView from "./me/MeView";
 import Sheets from "./sheets/Sheets";
+import BudgetBanner from "./BudgetBanner";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "chat", label: "聊聊" },
@@ -145,6 +146,7 @@ export default function AppShell() {
       <div className="flex w-full justify-center" style={{ height: "var(--app-h)" }}>
         <div className="paper-grain relative flex h-full w-full max-w-[480px] flex-col overflow-hidden sm:border-x sm:border-line/60 sm:shadow-[0_0_80px_rgba(0,0,0,0.07)]">
           <main className="relative min-h-0 flex-1">
+            <BudgetBanner />
             <section
               className={`absolute inset-0 transition-[opacity,visibility] duration-200 ${tab === "chat" ? "visible opacity-100" : "pointer-events-none invisible opacity-0"}`}
               aria-hidden={tab !== "chat"}
