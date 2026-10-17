@@ -160,12 +160,13 @@ export default function LetGoView() {
 
   /* ───── 丢 ───── */
   const finish = async () => {
+    const content = text.trim();
     setStage("done");
     setLine(LETGO_LINES[Math.floor(Math.random() * LETGO_LINES.length)]);
     setText("");
     useApp.getState().addLetgo();
     try {
-      const r = await fetch("/api/letgo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ anonId }) });
+      const r = await fetch("/api/letgo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ anonId, content }) });
       if (r.ok) setGlobal((await r.json()) as { today: number; total: number });
     } catch {
       /* 网络不好，也算了 */

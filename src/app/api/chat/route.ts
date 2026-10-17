@@ -1,6 +1,6 @@
 import { resolveEngine, streamChat, type LLMMessage } from "@/lib/server/llm";
 import { buildSystemPrompt, sanitizeProfile, userNow } from "@/lib/server/prompt";
-import { allow, clientKey, logUsage } from "@/lib/server/store";
+import { allow, clientIp, clientKey, isUserBlocked, logChat, logUsage } from "@/lib/server/store";
 import { extractBirth, extractGender, mockReply, type ChatMsg } from "@/lib/mock";
 
 export const runtime = "nodejs";
@@ -47,6 +47,14 @@ export async function POST(req: Request) {
     return Response.json({ error: "no user message" }, { status: 400 });
   }
 
+  const anonId = typeof body.anonId === "string" ? body.anonId : "";
+  if (anonId && (await isUserBlocked(anonId))) {
+    return Response.json({ error: "机缘暂歇，请少憩再叙。" }, { status: 403 });
+  }
+
+  const ip = clientIp(req);
+  const userAgent = req.headers.get("user-agent") || "";
+
   // 滚动上下文窗口：保留最近活跃对话，较早的轮次提炼为脉络摘要，杜绝健忘与超长断档
   const clientSummary = typeof body.summary === "string" ? body.summary.trim() : "";
   let combinedSummary = clientSummary;
@@ -58,7 +66,6 @@ export async function POST(req: Request) {
     combinedSummary = [clientSummary, autoSummary].filter(Boolean).join("；");
   }
 
-  const anonId = typeof body.anonId === "string" ? body.anonId : "";
   const deep = body.deep === true;
   const profile = sanitizeProfile(body.profile);
   // 生辰刚在这句话里出现时，先用它排好盘，免得模型自己推算出错
@@ -131,7 +138,24 @@ export async function POST(req: Request) {
       } catch {
         /* 已关闭 */
       }
-      if (produced) await logUsage(anonId, deep ? "deep" : "chat", usage, model);
+
+      // 合规审查与算力归档：异步执行不阻断响应流
+      void Promise.allSettled([
+        produced ? logUsage(anonId, deep ? "deep" : "chat", usage, model) : Promise.resolve(),
+        logChat({
+          anonId,
+          ip,
+          userAgent,
+          userPrompt: lastUser,
+          assistantReply: out,
+          model: produced ? model : "local-rule",
+          tokens: usage,
+          isDeep: deep,
+          profileName: profile.name,
+          profileBirth: profile.birth,
+          profileGender: profile.gender,
+        }),
+      ]);
     },
   });
 
