@@ -38,6 +38,7 @@ services:
       - LLM_FALLBACK_MODELS=${LLM_FALLBACK_MODELS:-gemini-3.8-flash,gemini-3.7-flash,gemini-2.5-flash}
       - LLM_SECONDARY_BASE_URL=${LLM_SECONDARY_BASE_URL:-https://api.ai-pixel.online/v1}
       - LLM_SECONDARY_API_KEY=${LLM_SECONDARY_API_KEY:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-suanle_curator_hk_2026}
     expose:
       - "3000"
 
