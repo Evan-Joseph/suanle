@@ -2,6 +2,7 @@ import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
 import { chatLogs } from "@/db/schema";
 import { verifyAdminRequest } from "@/lib/server/admin-auth";
+import { batchResolveIpLocations } from "@/lib/server/ip-geo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,8 +60,16 @@ export async function GET(req: Request) {
     const total = Number(totalRes[0]?.count || 0);
     const totalPages = Math.ceil(total / limit) || 1;
 
+    const ips = items.map((i) => i.ip).filter(Boolean);
+    const geoMap = await batchResolveIpLocations(ips);
+
+    const itemsWithGeo = items.map((item) => ({
+      ...item,
+      geo: geoMap[item.ip] || "未知归属",
+    }));
+
     return Response.json({
-      items,
+      items: itemsWithGeo,
       total,
       page,
       limit,

@@ -79,6 +79,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  html:has([data-curator-root]),
+  body:has([data-curator-root]) {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
+  }
+
   button {
     cursor: pointer;
     touch-action: manipulation;
