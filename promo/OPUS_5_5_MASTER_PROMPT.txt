@@ -1,0 +1,53 @@
+# Role: Global Creative Director, Cinematographer & Senior Motion Engineer for 《算了 · Suanle》
+# Target Model: Claude Opus 5.5 (Claude Motion & Video Prompt Engineering)
+
+You are tasked with directing and developing the complete cinematic promotional launch video (Brand Manifesto Film) and interactive motion prototype for 《算了 · Suanle》—a next-generation Eastern philosophical healing and destiny-reconciliation application.
+
+---
+
+## 1. Executive Context & Brand Philosophy
+- **Product Name**: 《算了 · Suanle》
+- **Core Slogan**: “算一算，然后，算了。” (Calculate, and then, Let It Go.)
+- **Live URL**: https://www.suanle.cc
+- **Official Asset Repository**: https://github.com/Evan-Joseph/suanle/tree/main/promo
+- **Philosophical Essence**: 
+  Modern individuals seek divination not for superstitious fatalism, but to find psychological grounding amidst overwhelming uncertainty and burnout. 
+  《算了》 is an insightful, gentle old friend who understands BaZi (Four Pillars), Ziwei Doushu, I-Ching (Six Lines), and Tarot, but understands the human heart even better.
+  - “算” (Calculate): To untangle mental knots, perceive boundaries, and observe the natural ebb and flow of life.
+  - “算了” (Let It Go): To release futile obsession, embrace reality with radical acceptance (ACT therapy), and step forward unburdened.
+- **Hero Interactive Features to Showcase**:
+  1. **The Let-Go Paper Basket (纸篓心事)**: Writing raw anxieties on textured rice paper, crumpling it with real physical fiber wrinkles, throwing it into a woven bamboo basket with dynamic physics and acoustic bowl chime (磬音).
+  2. **Three Bronze Coins I-Ching Casting (六爻摇卦)**: Three Kaiyuan Tongbao coins tumbling, spinning, and settling on a weathered tea table with crisp metallic clacks, casting the hexagram as a mirror to one's own inner clarity.
+  3. **Fortune K-Line & Chart (八字紫微 & 运势K线)**: Visualizing life not as a flat line, but as rhythmic waves of accumulation, breakout, and consolidation.
+  4. **The Sage Aphorism Card (水墨箴言长图)**: Generating exquisite Song-dynasty typographic cards with a red vermilion "算了" cinnabar seal.
+- **Strict Creative Restrictions**:
+  - **NO administrative backend UI or server metrics** (keep it pure humanistic art and product experience).
+  - **NO defensive disclaimers or immersion-breaking buzzwords** (no "for entertainment purposes only", no corporate jargon).
+  - **NO cheap flashing occult tropes** (no neon pentagrams, no cheesy lightning or EDM chants; strictly refined Song-dynasty wabi-sabi minimalism).
+
+---
+
+## 2. Production Deliverables Required From You
+
+### PART 1: The Brand Manifesto Voiceover Script (文案台词脚本)
+Write a powerful, resonant, 60-second voiceover script in Chinese. The tone must be intimate, deep, grounded, and empathetic—like a wise, weathered friend sharing hot tea on a rainy evening. Mark emotional rhythm, pauses (`...`), and voice pacing.
+
+### PART 2: Master Shot-by-Shot Storyboard Table (工业级分镜总表)
+Produce a comprehensive markdown production table with the following mandatory columns:
+`[Shot #]` | `[Timecode]` | `[Framing & Camera Movement]` | `[Visual Composition & Lighting]` | `[Voiceover Sync]` | `[Foley & Sound Design]`
+Cover all 60 seconds (Shot 01 to Shot 11), progressing from cold urban anxiety, through warm tea and tactile divination rituals, to final morning light and profound release.
+
+### PART 3: Cinema-Grade Video Generation Prompts (Sora / Kling / Runway Gen-3)
+For the 4 most pivotal keyframe shots (The Rainy Window, The Tumbling Bronze Coins, The Crumpled Paper Throw, The Vermilion Cinnabar Seal Imprint), write production-ready English prompts specifying:
+- 35mm film emulation, lens focal length, aperture (f/1.4 - f/2.8), lighting direction, color temperature, frame rate (120fps slow-motion where relevant), camera motion vectors, and tactile micro-textures.
+
+### PART 4: Code-Based Interactive Motion Experience (Claude Motion / Opus 5.5 Sandbox Artifact)
+Explore your full sandbox capabilities! Build a complete, self-contained, interactive single-file prototype (HTML5 + Tailwind CSS + Canvas / Web Animations API / SVG) that visually demonstrates the core aesthetic and micro-interactions of 《算了》:
+- An atmospheric, grain-textured Song-dynasty canvas with ink-wash breathing background;
+- An interactive paper crumpling & coin tossing physics simulation;
+- An animated reveal of the signature vermilion cinnabar seal (朱红“算了”印章) with subtle ink bleed;
+- Typography styled with authentic Chinese serif and balanced breathing rhythm.
+
+---
+
+Feel free to utilize all tools, leverage the GitHub repository assets, experiment boldly in your sandbox, and unleash your highest creative vision to forge a cinematic masterpiece!
