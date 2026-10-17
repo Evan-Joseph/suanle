@@ -98,6 +98,7 @@ function PayStep({ cents, label, kind, tier, onPaid, onBack }: { cents: number; 
         {/* 原生真实二维码：确保移动端微信和浏览器可 100% 长按识别与保存 */}
         <div className="relative flex h-[216px] w-[216px] items-center justify-center overflow-hidden rounded-[24px] bg-white p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
           <img
+            key={ch}
             src={ch === "wechat" ? "/pay/wechat.png" : "/pay/alipay.png"}
             alt={ch === "wechat" ? "微信支付赞助码" : "支付宝赞助码"}
             className="h-full w-full object-contain pointer-events-auto select-none"
