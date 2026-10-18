@@ -113,14 +113,31 @@ interface AppActions {
   spendDeep: () => void;
   dismissNudge: () => void;
   setSettings: (p: Partial<Settings>) => void;
-  importData: (raw: unknown) => boolean;
+  importData: (raw: unknown, mode?: "merge" | "replace") => boolean;
   resetAll: () => void;
 }
 
 export type AppState = AppData & AppActions;
 
+/** 优先读取本地最高信任锚点，防止普通缓存清理导致自然人身份分裂 */
+const getResilientAnonId = (): string => {
+  if (typeof window !== "undefined") {
+    try {
+      const existing = window.localStorage.getItem("suanle_permanent_anon_id");
+      if (existing && existing.length >= 12) return existing;
+    } catch {}
+  }
+  const fresh = uid() + uid();
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem("suanle_permanent_anon_id", fresh);
+    } catch {}
+  }
+  return fresh;
+};
+
 const initialData = (): AppData => ({
-  anonId: uid() + uid(),
+  anonId: getResilientAnonId(),
   profile: { facts: [], tags: [], firstSeen: Date.now() },
   sessions: [],
   currentId: null,
@@ -134,45 +151,83 @@ const initialData = (): AppData => ({
   settings: { sound: true, haptics: true, ambient: false, theme: "system", engine: null },
 });
 
-/* IndexedDB 为主，localStorage 兜底 */
-const idbStorage: StateStorage = {
+/* 韧性自愈存储 (Storage Self-Healing)：IndexedDB 与 localStorage 双轨镜像 + 互锁自愈补全 */
+const resilientStorage: StateStorage = {
   getItem: async (name) => {
     if (typeof window === "undefined") return null;
+    let idbVal: string | null = null;
+    let lsVal: string | null = null;
+
     try {
       const v = await idbGet<string>(name);
-      if (typeof v === "string") return v;
+      if (typeof v === "string" && v.trim()) idbVal = v;
     } catch {
-      /* 某些隐私模式不支持 IndexedDB */
+      /* 某些极端无痕模式不支持 IDB */
     }
+
     try {
-      return window.localStorage.getItem(name);
+      const v = window.localStorage.getItem(name);
+      if (v && v.trim()) lsVal = v;
     } catch {
-      return null;
+      /* noop */
     }
+
+    // 1. 双边都有有效数据：优先取内容更完整的数据
+    if (idbVal && lsVal) {
+      return idbVal.length >= lsVal.length ? idbVal : lsVal;
+    }
+
+    // 2. 仅 IndexedDB 存在（用户手误清理了 localStorage）：自动自愈回写 localStorage
+    if (idbVal && !lsVal) {
+      try {
+        window.localStorage.setItem(name, idbVal);
+      } catch {}
+      return idbVal;
+    }
+
+    // 3. 仅 localStorage 存在（IndexedDB 被清或重置）：自动自愈回写 IndexedDB
+    if (!idbVal && lsVal) {
+      try {
+        void idbSet(name, lsVal);
+      } catch {}
+      return lsVal;
+    }
+
+    return null;
   },
   setItem: async (name, value) => {
     if (typeof window === "undefined") return;
+
+    // 1. 同步镜像写入 localStorage
+    try {
+      window.localStorage.setItem(name, value);
+    } catch {
+      /* 局部配额警告 */
+    }
+
+    // 2. 异步镜像写入 IndexedDB
     try {
       await idbSet(name, value);
     } catch {
-      try {
-        window.localStorage.setItem(name, value);
-      } catch {
-        /* 存储已满 */
-      }
+      /* noop */
     }
+
+    // 3. 将 anonId 独立锚定写入防丢失专有硬键
+    try {
+      const parsed = JSON.parse(value);
+      const anonId = parsed?.state?.anonId;
+      if (typeof anonId === "string" && anonId) {
+        window.localStorage.setItem("suanle_permanent_anon_id", anonId);
+      }
+    } catch {}
   },
   removeItem: async (name) => {
     try {
       await idbDel(name);
-    } catch {
-      /* noop */
-    }
+    } catch {}
     try {
       window.localStorage.removeItem(name);
-    } catch {
-      /* noop */
-    }
+    } catch {}
   },
 };
 
@@ -300,26 +355,102 @@ export const useApp = create<AppState>()(
         }),
       dismissNudge: () => set({ nudgeDay: dayKey() }),
       setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
-      importData: (raw) => {
+      importData: (raw, mode = "merge") => {
         if (!raw || typeof raw !== "object") return false;
         const o = raw as Partial<AppData>;
         if (!Array.isArray(o.sessions) || !o.profile) return false;
+        const current = get();
         const base = initialData();
-        set({
-          ...base,
-          ...o,
-          anonId: get().anonId,
-          profile: { ...base.profile, ...o.profile },
-          settings: { ...base.settings, ...(o.settings ?? {}) },
-          currentId: null,
+
+        if (mode === "replace") {
+          set({
+            ...base,
+            ...o,
+            anonId: current.anonId,
+            profile: { ...base.profile, ...o.profile },
+            settings: { ...base.settings, ...(o.settings ?? {}) },
+            currentId: o.sessions[0]?.id ?? null,
+          });
+          reportProfileToServer(current.anonId, { ...base.profile, ...o.profile });
+          return true;
+        }
+
+        // 默认智能无损幂等合并 (Idempotent Lossless Merge)
+        // 1. 会话去重合并：根据 id 归拢，若有冲突保留消息数更多或更新时间更近的会话
+        const sessionMap = new Map<string, Session>();
+        current.sessions.forEach((s) => sessionMap.set(s.id, s));
+        o.sessions.forEach((incoming) => {
+          if (!incoming || !incoming.id) return;
+          const existing = sessionMap.get(incoming.id);
+          if (!existing) {
+            sessionMap.set(incoming.id, incoming);
+          } else {
+            const preferred =
+              (incoming.messages?.length ?? 0) >= (existing.messages?.length ?? 0) ||
+              (incoming.updatedAt ?? 0) > (existing.updatedAt ?? 0)
+                ? incoming
+                : existing;
+            sessionMap.set(incoming.id, preferred);
+          }
         });
+        const mergedSessions = Array.from(sessionMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+        // 2. 占卜记录去重合并
+        const recordMap = new Map<string, DivRecord>();
+        current.records.forEach((r) => recordMap.set(r.id, r));
+        (o.records ?? []).forEach((r) => {
+          if (r && r.id) recordMap.set(r.id, r);
+        });
+        const mergedRecords = Array.from(recordMap.values()).sort((a, b) => b.createdAt - a.createdAt);
+
+        // 3. 画像资料融合（非空覆盖，标签事实取并集）
+        const p = current.profile;
+        const op = o.profile;
+        const mergedFacts = Array.from(new Set([...p.facts, ...(op.facts ?? [])])).slice(-40);
+        const mergedTags = Array.from(new Set([...p.tags, ...(op.tags ?? [])])).slice(-16);
+        const mergedProfile: Profile = {
+          ...p,
+          name: op.name || p.name,
+          birth: op.birth || p.birth,
+          gender: op.gender || p.gender,
+          city: op.city || p.city,
+          facts: mergedFacts,
+          tags: mergedTags,
+          firstSeen: Math.min(p.firstSeen || Date.now(), op.firstSeen || Date.now()),
+        };
+
+        // 4. 纸篓与功德计数取最大并集
+        const mergedLetgo = {
+          total: Math.max(current.letgo.total, o.letgo?.total ?? 0),
+          day: dayKey(),
+          today: current.letgo.day === dayKey() ? current.letgo.today : 0,
+        };
+        const mergedMerit = {
+          cents: Math.max(current.merit.cents, o.merit?.cents ?? 0),
+          count: Math.max(current.merit.count, o.merit?.count ?? 0),
+          lastAt: Math.max(current.merit.lastAt, o.merit?.lastAt ?? 0),
+          lampUntil: Math.max(current.merit.lampUntil, o.merit?.lampUntil ?? 0),
+        };
+
+        set({
+          sessions: mergedSessions,
+          records: mergedRecords,
+          profile: mergedProfile,
+          letgo: mergedLetgo,
+          merit: mergedMerit,
+          settings: { ...current.settings, ...(o.settings ?? {}) },
+          currentId: mergedSessions[0]?.id ?? null,
+        });
+
+        // 将融合后的最新画像回传总账
+        reportProfileToServer(current.anonId, mergedProfile);
         return true;
       },
       resetAll: () => set({ ...initialData(), anonId: get().anonId, settings: get().settings }),
     }),
     {
       name: "suanle-v2",
-      storage: createJSONStorage(() => idbStorage),
+      storage: createJSONStorage(() => resilientStorage),
       version: 2,
       skipHydration: true,
       partialize: (s) => {
@@ -347,7 +478,19 @@ export const useApp = create<AppState>()(
 
 export function exportData(): string {
   const s = useApp.getState();
-  const data = { app: "suanle", version: 2, exportedAt: new Date().toISOString(), profile: s.profile, sessions: s.sessions, records: s.records, usage: s.usage, letgo: s.letgo, merit: s.merit, settings: { ...s.settings, engine: null } };
+  const data = {
+    app: "suanle",
+    schemaVersion: 2,
+    exportedAt: new Date().toISOString(),
+    anonId: s.anonId,
+    profile: s.profile,
+    sessions: s.sessions,
+    records: s.records,
+    usage: s.usage,
+    letgo: s.letgo,
+    merit: s.merit,
+    settings: { ...s.settings, engine: null },
+  };
   return JSON.stringify(data, null, 2);
 }
 
