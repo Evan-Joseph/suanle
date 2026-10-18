@@ -1,6 +1,6 @@
 import { resolveEngine, streamChat, type LLMMessage } from "@/lib/server/llm";
 import { buildSystemPrompt, sanitizeProfile, userNow } from "@/lib/server/prompt";
-import { allow, clientIp, clientKey, isUserBlocked, logChat, logUsage } from "@/lib/server/store";
+import { allow, clientIp, clientKey, isAnonMigrated, isUserBlocked, logChat, logUsage } from "@/lib/server/store";
 import { extractBirth, extractGender, mockReply, type ChatMsg } from "@/lib/mock";
 
 export const runtime = "nodejs";
@@ -48,8 +48,16 @@ export async function POST(req: Request) {
   }
 
   const anonId = typeof body.anonId === "string" ? body.anonId : "";
-  if (anonId && (await isUserBlocked(anonId))) {
-    return Response.json({ error: "机缘暂歇，请少憩再叙。" }, { status: 403 });
+  if (anonId) {
+    if (await isAnonMigrated(anonId)) {
+      return Response.json(
+        { error: "此设备档案已通过云同步码迁移至新设备。旧端已功成身退，请移步新端继续参悟。" },
+        { status: 403 }
+      );
+    }
+    if (await isUserBlocked(anonId)) {
+      return Response.json({ error: "机缘暂歇，请少憩再叙。" }, { status: 403 });
+    }
   }
 
   const ip = clientIp(req);
@@ -93,7 +101,8 @@ export async function POST(req: Request) {
           /* 客户端已离开 */
         }
       };
-      let out = "";
+      let content = "";
+      let reasoning = "";
       let usage = 0;
       let model = "local";
       let produced = false;
@@ -102,11 +111,11 @@ export async function POST(req: Request) {
           for await (const ev of streamChat(engine, llmMessages, { maxTokens: deep ? 2800 : 1500, signal: req.signal })) {
             if (ev.type === "content") {
               produced = true;
-              out += ev.text;
+              content += ev.text;
               send({ t: "d", v: ev.text });
             } else if (ev.type === "reasoning") {
               produced = true;
-              out += ev.text;
+              reasoning += ev.text;
               send({ t: "r", v: ev.text });
             } else if (ev.type === "usage") {
               usage = ev.total;
@@ -124,13 +133,25 @@ export async function POST(req: Request) {
         const chunks = text.match(/[\s\S]{1,4}/g) ?? [];
         for (const c of chunks) {
           if (req.signal.aborted) break;
-          out += c;
+          content += c;
           send({ t: "d", v: c });
           await new Promise((r) => setTimeout(r, 16));
         }
       }
+
+      // 规范化组装持久化回复：若有独立思维链，用标准 <think> 标签结构化包裹，彻底隔离正文与思考
+      const cleanContent = content.trim();
+      const cleanReasoning = reasoning.trim();
+      const finalStoredReply =
+        cleanReasoning && !cleanContent.includes("<think>")
+          ? `<think>\n${cleanReasoning}\n</think>\n\n${cleanContent}`
+          : cleanContent;
+
       // 「算力」是产品里的统一度量：取上游用量与本地估算中较大的一个，保持口径稳定
-      usage = Math.max(usage, estimate(system) + messages.reduce((acc, m) => acc + estimate(m.content), 0) + estimate(out));
+      usage = Math.max(
+        usage,
+        estimate(system) + messages.reduce((acc, m) => acc + estimate(m.content), 0) + estimate(finalStoredReply)
+      );
       send({ t: "u", v: usage });
       send({ t: "end" });
       try {
@@ -147,7 +168,7 @@ export async function POST(req: Request) {
           ip,
           userAgent,
           userPrompt: lastUser,
-          assistantReply: out,
+          assistantReply: finalStoredReply,
           model: produced ? model : "local-rule",
           tokens: usage,
           isDeep: deep,

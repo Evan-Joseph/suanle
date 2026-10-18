@@ -7,6 +7,7 @@ import {
   Activity,
   AlertCircle,
   ArrowDownToLine,
+  ArrowRightLeft,
   Ban,
   Bot,
   Check,
@@ -185,7 +186,7 @@ function SparklineArea({
   );
 }
 
-// 24小时小时级走势图
+// 24小时小时级走势图 (24小时完整槽位补齐 + 双轨平滑 SVG 面积折线 + 双轨柱状微交互)
 function HourlyTrendChart({
   chats,
   tokens,
@@ -193,70 +194,204 @@ function HourlyTrendChart({
   chats: { hour: string; count: number }[];
   tokens: { hour: string; count: number }[];
 }) {
-  const merged = useMemo(() => {
-    const map = new Map<string, { hour: string; chats: number; tokens: number }>();
-    chats.forEach((c) => {
-      map.set(c.hour, { hour: c.hour, chats: c.count, tokens: 0 });
-    });
-    tokens.forEach((t) => {
-      const existing = map.get(t.hour) || { hour: t.hour, chats: 0, tokens: 0 };
-      existing.tokens = t.count;
-      map.set(t.hour, existing);
-    });
-    return Array.from(map.values()).sort((a, b) => a.hour.localeCompare(b.hour));
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  // 1. 过去 24 小时槽位完整补齐 (确保时序连续等距，彻底杜绝数据空白与断裂)
+  const full24Hours = useMemo(() => {
+    const chatMap = new Map<string, number>();
+    chats.forEach((c) => chatMap.set(c.hour, c.count));
+
+    const tokenMap = new Map<string, number>();
+    tokens.forEach((t) => tokenMap.set(t.hour, t.count));
+
+    const now = new Date();
+    const slots: { hour: string; label: string; chats: number; tokens: number }[] = [];
+
+    // 从 23 小时前推演至当前小时
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 3600 * 1000);
+      const hStr = `${String(d.getHours()).padStart(2, "0")}:00`;
+      slots.push({
+        hour: hStr,
+        label: hStr,
+        chats: chatMap.get(hStr) || 0,
+        tokens: tokenMap.get(hStr) || 0,
+      });
+    }
+    return slots;
   }, [chats, tokens]);
 
-  if (merged.length === 0) {
-    return (
-      <div className="flex h-36 items-center justify-center rounded-xl border border-dashed border-line text-[12px] text-mute">
-        暂无过去 24 小时对话与算力波动记录
-      </div>
-    );
-  }
+  const totalChats = useMemo(() => full24Hours.reduce((acc, c) => acc + c.chats, 0), [full24Hours]);
+  const totalTokens = useMemo(() => full24Hours.reduce((acc, c) => acc + c.tokens, 0), [full24Hours]);
 
-  const maxChats = Math.max(1, ...merged.map((m) => m.chats));
-  const maxTokens = Math.max(100, ...merged.map((m) => m.tokens));
+  const maxChats = Math.max(3, ...full24Hours.map((m) => m.chats));
+  const maxTokens = Math.max(300, ...full24Hours.map((m) => m.tokens));
+
+  // 2. 构造 24 个采样点的 SVG 平滑贝塞尔曲线
+  const svgW = 760;
+  const svgH = 100;
+  const padX = 14;
+  const padY = 12;
+  const usableW = svgW - padX * 2;
+  const usableH = svgH - padY * 2;
+
+  const chatPoints = full24Hours.map((item, idx) => {
+    const x = padX + (idx / (full24Hours.length - 1)) * usableW;
+    const y = svgH - padY - (item.chats / maxChats) * usableH;
+    return { x, y, ...item };
+  });
+
+  const tokenPoints = full24Hours.map((item, idx) => {
+    const x = padX + (idx / (full24Hours.length - 1)) * usableW;
+    const y = svgH - padY - (item.tokens / maxTokens) * usableH;
+    return { x, y, ...item };
+  });
+
+  const makeSmoothPath = (pts: { x: number; y: number }[]) => {
+    if (pts.length === 0) return "";
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const mx = (p0.x + p1.x) / 2;
+      d += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`;
+    }
+    return d;
+  };
+
+  const lineChat = makeSmoothPath(chatPoints);
+  const areaChat = `${lineChat} L ${chatPoints[chatPoints.length - 1].x} ${svgH - padY} L ${chatPoints[0].x} ${svgH - padY} Z`;
+
+  const lineToken = makeSmoothPath(tokenPoints);
+  const areaToken = `${lineToken} L ${tokenPoints[tokenPoints.length - 1].x} ${svgH - padY} L ${tokenPoints[0].x} ${svgH - padY} Z`;
+
+  const active = hoveredIdx !== null ? full24Hours[hoveredIdx] : null;
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between text-[11.5px] text-mute">
+      {/* 图例与即时状态看板 */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-sage" />
-            <span>对话量 (次)</span>
+          <span className="flex items-center gap-1.5 font-medium text-ink">
+            <span className="h-2.5 w-2.5 rounded-full bg-sage shadow-sm shadow-sage/30" />
+            <span>问卜对话：</span>
+            <b className="font-mono text-sage">{hoveredIdx !== null ? active?.chats : totalChats}</b>
+            <span className="text-[11px] text-mute">{hoveredIdx !== null ? "次 (当点)" : "次 (24h累积)"}</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-gold" />
-            <span>算力 Token 吞吐</span>
+          <span className="flex items-center gap-1.5 font-medium text-ink">
+            <span className="h-2.5 w-2.5 rounded-full bg-gold shadow-sm shadow-gold/30" />
+            <span>算力吞吐：</span>
+            <b className="font-mono text-gold">{hoveredIdx !== null ? active?.tokens.toLocaleString() : totalTokens.toLocaleString()}</b>
+            <span className="text-[11px] text-mute">{hoveredIdx !== null ? "Tokens" : "Tokens (24h)"}</span>
           </span>
         </div>
-        <span>过去 24 小时小时级分布</span>
+
+        <div className="flex items-center gap-2 font-mono text-[11px] text-mute">
+          {active ? (
+            <span className="rounded bg-paper-2 px-2 py-0.5 text-ink font-medium">
+              时段：{active.hour} ~ {String((parseInt(active.hour, 10) + 1) % 24).padStart(2, "0")}:00
+            </span>
+          ) : (
+            <span>过去 24 小时连续时间序列 · 悬停可透视每小时吞吐</span>
+          )}
+        </div>
       </div>
 
-      <div className="grid h-36 grid-cols-12 items-end gap-1.5 rounded-xl border border-line/60 bg-paper p-3">
-        {merged.slice(-12).map((item, idx) => {
-          const chatH = Math.max(4, Math.round((item.chats / maxChats) * 90));
-          const tokH = Math.max(2, Math.round((item.tokens / maxTokens) * 90));
-          return (
-            <div key={idx} className="group relative flex h-full flex-col items-center justify-end">
-              <div className="flex w-full items-end justify-center gap-1">
-                <div
-                  style={{ height: `${chatH}%` }}
-                  className="w-2.5 rounded-t bg-sage transition-all hover:bg-sage/80"
-                  title={`${item.hour}: 对话 ${item.chats} 次`}
+      {/* SVG 平滑双轨渐变面积图 + 柱状复合走势容器 */}
+      <div className="relative overflow-hidden rounded-xl border border-line/70 bg-paper p-3 shadow-sm">
+        {/* 背景轻量水平参考刻度线 */}
+        <div className="absolute inset-x-3 top-3 bottom-8 flex flex-col justify-between pointer-events-none opacity-20">
+          <div className="border-b border-dashed border-ink/40 w-full" />
+          <div className="border-b border-dashed border-ink/40 w-full" />
+          <div className="border-b border-dashed border-ink/40 w-full" />
+        </div>
+
+        {/* 双轨面积折线图 */}
+        <div className="relative h-28 w-full">
+          <svg viewBox={`0 0 ${svgW} ${svgH}`} preserveAspectRatio="none" className="h-full w-full overflow-visible">
+            <defs>
+              <linearGradient id="gradSage" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38761d" stopOpacity="0.32" />
+                <stop offset="85%" stopColor="#38761d" stopOpacity="0.04" />
+                <stop offset="100%" stopColor="#38761d" stopOpacity="0.0" />
+              </linearGradient>
+              <linearGradient id="gradGold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d97706" stopOpacity="0.28" />
+                <stop offset="85%" stopColor="#d97706" stopOpacity="0.03" />
+                <stop offset="100%" stopColor="#d97706" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            {/* 算力 Token 吞吐面积与折线 (底轨) */}
+            <path d={areaToken} fill="url(#gradGold)" />
+            <path d={lineToken} fill="none" stroke="#d97706" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+
+            {/* 问卜对话频次面积与折线 (顶轨) */}
+            <path d={areaChat} fill="url(#gradSage)" />
+            <path d={lineChat} fill="none" stroke="#38761d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+
+            {/* 悬停时的垂直切线与焦点光圈 */}
+            {hoveredIdx !== null && (
+              <g pointerEvents="none">
+                <line
+                  x1={chatPoints[hoveredIdx].x}
+                  y1={padY}
+                  x2={chatPoints[hoveredIdx].x}
+                  y2={svgH - padY}
+                  stroke="#8f3a2c"
+                  strokeWidth="1.2"
+                  strokeDasharray="3 3"
+                  opacity="0.8"
                 />
-                <div
-                  style={{ height: `${tokH}%` }}
-                  className="w-2.5 rounded-t bg-gold/70 transition-all hover:bg-gold"
-                  title={`${item.hour}: ${item.tokens} Tokens`}
-                />
+                <circle cx={chatPoints[hoveredIdx].x} cy={chatPoints[hoveredIdx].y} r="4" fill="#38761d" stroke="#ffffff" strokeWidth="1.5" />
+                <circle cx={tokenPoints[hoveredIdx].x} cy={tokenPoints[hoveredIdx].y} r="3.5" fill="#d97706" stroke="#ffffff" strokeWidth="1.5" />
+              </g>
+            )}
+          </svg>
+        </div>
+
+        {/* 24 小时微交互柱条与时间标尺栏 */}
+        <div className="mt-2.5 grid grid-cols-[repeat(24,minmax(0,1fr))] gap-[2px] pt-1 border-t border-line/40">
+          {full24Hours.map((item, idx) => {
+            const isHovered = hoveredIdx === idx;
+            const hasData = item.chats > 0 || item.tokens > 0;
+            // 保证有固定的最小柱条高度，绝不塌缩为 0px
+            const chatH = item.chats > 0 ? Math.max(6, Math.min(36, Math.round((item.chats / maxChats) * 36))) : 2;
+            const tokH = item.tokens > 0 ? Math.max(4, Math.min(36, Math.round((item.tokens / maxTokens) * 36))) : 2;
+
+            return (
+              <div
+                key={idx}
+                onMouseEnter={() => setHoveredIdx(idx)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                className={`group flex h-14 cursor-pointer flex-col items-center justify-end rounded-md transition-all ${
+                  isHovered ? "bg-ink/[0.06]" : "hover:bg-ink/[0.03]"
+                }`}
+              >
+                {/* 双柱对齐容器 */}
+                <div className="flex items-end justify-center gap-[2px] pb-1">
+                  <div
+                    style={{ height: `${chatH}px` }}
+                    className={`w-[4px] rounded-t transition-all ${
+                      hasData && item.chats > 0 ? "bg-sage group-hover:bg-sage/80" : "bg-ink/10"
+                    }`}
+                  />
+                  <div
+                    style={{ height: `${tokH}px` }}
+                    className={`w-[4px] rounded-t transition-all ${
+                      hasData && item.tokens > 0 ? "bg-gold group-hover:bg-gold/80" : "bg-ink/10"
+                    }`}
+                  />
+                </div>
+
+                {/* 仅在关键时间点显示时标，避免拥挤 */}
+                <span className="font-mono text-[8.5px] leading-none text-mute truncate select-none">
+                  {idx % 4 === 0 || idx === full24Hours.length - 1 ? item.hour.slice(0, 2) : "·"}
+                </span>
               </div>
-              <span className="mt-1 font-mono text-[9px] text-mute truncate max-w-full">
-                {item.hour.slice(0, 5)}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -1242,7 +1377,7 @@ export default function CuratorPage() {
                               {item.userPrompt}
                             </td>
                             <td className="max-w-[260px] truncate px-3 py-3 text-mute" title={item.assistantReply}>
-                              {item.assistantReply.replace(/\n+/g, " ").slice(0, 80)}
+                              {item.assistantReply.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/\n+/g, " ").trim().slice(0, 80)}
                             </td>
                             <td className="py-3 pl-2 pr-4 text-right">
                               <button
@@ -1358,26 +1493,54 @@ export default function CuratorPage() {
                           </div>
                         </div>
 
-                        {/* AI 回复全文 (支持 Markdown 解析与样式定制) */}
+                        {/* AI 回复全文 (支持 Markdown 解析与思维链折叠) */}
                         <div>
-                          <div className="flex items-center justify-between text-[12px] font-bold text-ink">
-                            <span>AI 回复全文：</span>
-                            <span className="text-[11px] font-normal text-mute">
-                              {viewMode === "markdown" ? "已启用 Markdown 语法高亮排版" : "纯文本原始内容"}
-                            </span>
-                          </div>
+                          {(() => {
+                            const thinkMatch = item.assistantReply.match(/<think>([\s\S]*?)<\/think>/i);
+                            const thinkContent = thinkMatch ? thinkMatch[1].trim() : null;
+                            const cleanReply = thinkMatch
+                              ? item.assistantReply.replace(/<think>[\s\S]*?<\/think>/i, "").trim()
+                              : item.assistantReply;
 
-                          {viewMode === "markdown" ? (
-                            <div className="mt-1.5 max-h-[480px] overflow-y-auto rounded-xl border border-line bg-paper p-4 font-song text-[13.5px] leading-relaxed text-ink-2">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                                {item.assistantReply}
-                              </ReactMarkdown>
-                            </div>
-                          ) : (
-                            <pre className="mt-1.5 max-h-[480px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-line bg-paper p-4 font-mono text-[12px] leading-relaxed text-ink-2">
-                              {item.assistantReply}
-                            </pre>
-                          )}
+                            return (
+                              <>
+                                <div className="flex items-center justify-between text-[12px] font-bold text-ink">
+                                  <span>AI 回复全文：</span>
+                                  <span className="text-[11px] font-normal text-mute">
+                                    {viewMode === "markdown" ? "已启用 Markdown 语法高亮排版" : "纯文本原始内容"}
+                                  </span>
+                                </div>
+
+                                {thinkContent && (
+                                  <details className="mt-2 mb-2 rounded-xl border border-line/70 bg-paper-2 p-3 text-[12px] text-mute group">
+                                    <summary className="cursor-pointer font-medium text-ink flex items-center justify-between select-none">
+                                      <span className="flex items-center gap-1.5 text-sage font-medium">
+                                        <Sparkles className="h-3.5 w-3.5" />
+                                        <span>推演心智链 (CoT 依据)</span>
+                                      </span>
+                                      <span className="text-[11px] text-mute group-open:hidden">点击展开审查</span>
+                                      <span className="text-[11px] text-mute hidden group-open:inline">收起</span>
+                                    </summary>
+                                    <div className="mt-2 whitespace-pre-wrap font-mono text-[11.5px] leading-relaxed text-ink/80 border-t border-line/40 pt-2">
+                                      {thinkContent}
+                                    </div>
+                                  </details>
+                                )}
+
+                                {viewMode === "markdown" ? (
+                                  <div className="mt-1.5 max-h-[480px] overflow-y-auto rounded-xl border border-line bg-paper p-4 font-song text-[13.5px] leading-relaxed text-ink-2">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                      {cleanReply}
+                                    </ReactMarkdown>
+                                  </div>
+                                ) : (
+                                  <pre className="mt-1.5 max-h-[480px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-line bg-paper p-4 font-mono text-[12px] leading-relaxed text-ink-2">
+                                    {cleanReply}
+                                  </pre>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
 
                         {item.userAgent && (
@@ -1625,7 +1788,15 @@ export default function CuratorPage() {
                             })()}
                           </td>
                           <td className="px-3 py-3">
-                            {u.isBlocked ? (
+                            {u.isBlocked && u.blockedReason?.startsWith("MIGRATED") ? (
+                              <span
+                                title={u.blockedReason}
+                                className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-medium text-amber-600 dark:text-amber-400"
+                              >
+                                <ArrowRightLeft className="h-3 w-3" />
+                                已换机迁出
+                              </span>
+                            ) : u.isBlocked ? (
                               <span
                                 title={u.blockedReason || "风控限制"}
                                 className="inline-flex items-center gap-1 rounded-full bg-seal/15 px-2 py-0.5 text-[10.5px] font-medium text-seal"
@@ -1666,24 +1837,36 @@ export default function CuratorPage() {
                             {formatTime(u.lastActiveAt)}
                           </td>
                           <td className="py-3 pl-2 pr-4 text-right">
-                            <button
-                              onClick={() => void toggleBlockUser(u.anonId, u.isBlocked)}
-                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
-                                u.isBlocked
-                                  ? "border-sage/40 bg-sage/10 text-sage hover:bg-sage/20"
-                                  : "border-seal/30 bg-seal/10 text-seal hover:bg-seal/20"
-                              }`}
-                            >
-                              {u.isBlocked ? (
+                            {u.isBlocked && u.blockedReason?.startsWith("MIGRATED") ? (
+                              <button
+                                onClick={() => void toggleBlockUser(u.anonId, true)}
+                                title="点击可重新解禁此设备"
+                                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-600 transition hover:bg-amber-500/20"
+                              >
                                 <span className="flex items-center gap-1">
-                                  <Unlock className="h-3 w-3" /> 解除
+                                  <Unlock className="h-3 w-3" /> 重启
                                 </span>
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <Ban className="h-3 w-3" /> 封禁
-                                </span>
-                              )}
-                            </button>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => void toggleBlockUser(u.anonId, u.isBlocked)}
+                                className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
+                                  u.isBlocked
+                                    ? "border-sage/40 bg-sage/10 text-sage hover:bg-sage/20"
+                                    : "border-seal/30 bg-seal/10 text-seal hover:bg-seal/20"
+                                }`}
+                              >
+                                {u.isBlocked ? (
+                                  <span className="flex items-center gap-1">
+                                    <Unlock className="h-3 w-3" /> 解除
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Ban className="h-3 w-3" /> 封禁
+                                  </span>
+                                )}
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))

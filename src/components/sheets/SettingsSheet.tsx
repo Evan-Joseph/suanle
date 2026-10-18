@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Cloud, CloudDownload, CloudUpload, Copy, Download, Upload } from "lucide-react";
-import { dayKey, exportData, useApp, useUI, type Settings } from "@/lib/store";
+import { dayKey, exportData, uid, useApp, useUI, type Settings } from "@/lib/store";
 import { syncAmbient } from "@/lib/sound";
 import { Icon } from "../icons";
 import { Sheet } from "../ui";
@@ -44,6 +44,24 @@ export default function SettingsSheet() {
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [restoreInput, setRestoreInput] = useState("");
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [isMigrated, setIsMigrated] = useState(false);
+
+  // 挂载或展开设置面板时，检测本端是否已迁出
+  useEffect(() => {
+    if (!open) return;
+    const anonId = useApp.getState().anonId;
+    if (!anonId) return;
+    fetch("/api/backup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "check-migrated", anonId }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok && d.migrated) setIsMigrated(true);
+      })
+      .catch(() => {});
+  }, [open]);
 
   const themes: { id: Settings["theme"]; label: string }[] = [
     { id: "system", label: "跟随系统" },
@@ -85,6 +103,40 @@ export default function SettingsSheet() {
         <div className="mt-6 text-[12.5px] text-mute">我的数据与换机同步</div>
         <p className="mt-1 text-[12px] leading-relaxed text-mute">聊过的话、命盘和小档案默认保存在本地。你可以导出为文件，也可以生成一串短 ID 云端跨机迁移。</p>
         
+        {/* 换机迁出状态警示与解绑 */}
+        {isMigrated && (
+          <div className="mt-3 rounded-[18px] border border-amber-500/30 bg-amber-500/[0.08] p-3.5 space-y-2">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <span className="grid h-6 w-6 place-items-center rounded-lg bg-amber-500/20 text-[12px] font-bold">
+                迁
+              </span>
+              <span className="text-[13px] font-medium">此设备档案已通过云同步码迁出</span>
+            </div>
+            <p className="text-[11.5px] leading-relaxed text-mute">
+              为避免多端并发冲突与数据覆盖，旧设备已完成使命。本端现有记录仅供归档查阅。若需在此设备重新开启一段全新参悟，可点击下方开启独立新档案。
+            </p>
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const fresh = uid() + uid();
+                  if (typeof window !== "undefined") {
+                    try {
+                      window.localStorage.setItem("suanle_permanent_anon_id", fresh);
+                    } catch {}
+                  }
+                  useApp.setState({ anonId: fresh });
+                  setIsMigrated(false);
+                  toast("已为此设备重新开启独立新缘分");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-card px-3 py-1 text-[11.5px] font-medium text-ink transition hover:bg-paper active:scale-95"
+              >
+                <span>在此设备开启独立新档案</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 云端跨机同步短 ID */}
         <div className="mt-3 rounded-[20px] border border-line bg-card/75 p-3.5 space-y-3">
           <div className="flex items-center justify-between">
@@ -218,6 +270,7 @@ export default function SettingsSheet() {
                     } catch {}
                   }
 
+                  const beforeSessions = useApp.getState().sessions.length;
                   try {
                     const res = await fetch("/api/backup", {
                       method: "POST",
@@ -227,11 +280,18 @@ export default function SettingsSheet() {
                     const data = await res.json();
                     if (data.ok && data.payload) {
                       const parsed = JSON.parse(data.payload);
-                      const ok = useApp.getState().importData(parsed);
+                      const ok = useApp.getState().importData(parsed, "merge");
                       if (ok) {
-                        toast("历史记录与命盘已全部找回！欢迎回来");
+                        const afterSessions = useApp.getState().sessions.length;
+                        const addedSessions = Math.max(0, afterSessions - beforeSessions);
+                        toast(
+                          addedSessions > 0
+                            ? `历史进度已智能融合！找回 ${addedSessions} 个锦囊（现有 ${afterSessions} 个）`
+                            : "历史记录已同步，当前已是最新进度"
+                        );
                         setRestoreOpen(false);
                         setRestoreInput("");
+                        setIsMigrated(false);
                       } else {
                         toast("备份数据解析异常");
                       }
@@ -286,7 +346,21 @@ export default function SettingsSheet() {
               e.target.value = "";
               if (!f) return;
               f.text()
-                .then((t) => toast(useApp.getState().importData(JSON.parse(t)) ? "导入成功，都回来了" : "文件格式不兼容"))
+                .then((t) => {
+                  const beforeSessions = useApp.getState().sessions.length;
+                  const ok = useApp.getState().importData(JSON.parse(t), "merge");
+                  if (ok) {
+                    const afterSessions = useApp.getState().sessions.length;
+                    const addedSessions = Math.max(0, afterSessions - beforeSessions);
+                    toast(
+                      addedSessions > 0
+                        ? `导入成功！融合找回 ${addedSessions} 个锦囊（现有 ${afterSessions} 个）`
+                        : "导入成功，数据已幂等融合"
+                    );
+                  } else {
+                    toast("文件格式不兼容");
+                  }
+                })
                 .catch(() => toast("文件读取失败"));
             }}
           />

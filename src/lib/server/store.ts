@@ -16,11 +16,13 @@ export function clientKey(req: Request, anonId?: string): string {
 
 export async function isUserBlocked(anonId: string): Promise<boolean> {
   if (!anonId) return false;
+  const clean = anonId.slice(0, 64);
+  if (retiredAnonIds.has(clean)) return true;
   try {
     const res = await db
       .select({ isBlocked: usersRegistry.isBlocked })
       .from(usersRegistry)
-      .where(eq(usersRegistry.anonId, anonId.slice(0, 64)))
+      .where(eq(usersRegistry.anonId, clean))
       .limit(1);
     return res[0]?.isBlocked === true;
   } catch {
@@ -354,6 +356,7 @@ export async function createCloudBackup(anonId: string, payload: string, ip: str
 
 export async function restoreCloudBackup(rawCode: string, newAnonId: string): Promise<{ ok: boolean; payload?: string; migratedFrom?: string; error?: string }> {
   const code = (rawCode || "").trim().toUpperCase();
+  const cleanNewAnon = (newAnonId || "").trim().slice(0, 64);
   if (!code) return { ok: false, error: "请输入有效的云同步码" };
 
   // 1. 尝试从数据库查询
@@ -371,20 +374,118 @@ export async function restoreCloudBackup(rawCode: string, newAnonId: string): Pr
         return { ok: false, error: "该云同步码已过期（超过7天），请重新从旧设备生成" };
       }
       if (b.claimed) {
+        if (cleanNewAnon && b.claimedBy === cleanNewAnon) {
+          return { ok: true, payload: b.payload, migratedFrom: b.anonId };
+        }
         return { ok: false, error: "该云同步码已被新设备提取并失效。为保障安全，一份同步码仅可提取一次" };
       }
 
-      // 标记为已提取，注销旧设备
+      const oldAnonId = b.anonId.slice(0, 64);
+
+      // 标记为已提取
       await db
         .update(cloudBackups)
         .set({
           claimed: true,
-          claimedBy: newAnonId.slice(0, 64),
+          claimedBy: cleanNewAnon,
           claimedAt: new Date(),
         })
         .where(eq(cloudBackups.code, code));
 
-      retiredAnonIds.add(b.anonId);
+      // 若为跨设备换机迁移，执行服务端身份缝合 (Identity Stitching)
+      if (oldAnonId && cleanNewAnon && oldAnonId !== cleanNewAnon) {
+        retiredAnonIds.add(oldAnonId);
+
+        try {
+          const [oldUser] = await db.select().from(usersRegistry).where(eq(usersRegistry.anonId, oldAnonId)).limit(1);
+          const [newUser] = await db.select().from(usersRegistry).where(eq(usersRegistry.anonId, cleanNewAnon)).limit(1);
+
+          let backupProfile: Record<string, any> = {};
+          try {
+            const parsed = JSON.parse(b.payload);
+            if (parsed?.profile && typeof parsed.profile === "object") {
+              backupProfile = parsed.profile;
+            }
+          } catch {}
+
+          const mergedName = newUser?.profileName || oldUser?.profileName || backupProfile.name || "";
+          const mergedBirth = newUser?.profileBirth || oldUser?.profileBirth || backupProfile.birth || "";
+          const mergedGender = newUser?.profileGender || oldUser?.profileGender || backupProfile.gender || "";
+          const mergedCity = newUser?.profileCity || oldUser?.profileCity || backupProfile.city || "";
+          const mergedFirstIp = oldUser?.firstIp || newUser?.firstIp || "local";
+          const mergedLastIp = newUser?.lastIp || oldUser?.lastIp || "local";
+          const addChats = oldUser?.totalChats || 0;
+          const addTokens = oldUser?.totalTokens || 0;
+          const addLetgos = oldUser?.totalLetgos || 0;
+          const addMerit = oldUser?.totalMeritCents || 0;
+
+          // A. 在 usersRegistry 中合并并充实 newAnonId
+          await db
+            .insert(usersRegistry)
+            .values({
+              anonId: cleanNewAnon,
+              profileName: mergedName,
+              profileBirth: mergedBirth,
+              profileGender: mergedGender,
+              profileCity: mergedCity,
+              firstIp: mergedFirstIp,
+              lastIp: mergedLastIp,
+              totalChats: (newUser?.totalChats || 0) + addChats,
+              totalTokens: (newUser?.totalTokens || 0) + addTokens,
+              totalLetgos: (newUser?.totalLetgos || 0) + addLetgos,
+              totalMeritCents: (newUser?.totalMeritCents || 0) + addMerit,
+              isBlocked: false,
+              lastActiveAt: new Date(),
+            })
+            .onConflictDoUpdate({
+              target: usersRegistry.anonId,
+              set: {
+                profileName: mergedName,
+                profileBirth: mergedBirth,
+                profileGender: mergedGender,
+                profileCity: mergedCity,
+                totalChats: sql`${usersRegistry.totalChats} + ${addChats}`,
+                totalTokens: sql`${usersRegistry.totalTokens} + ${addTokens}`,
+                totalLetgos: sql`${usersRegistry.totalLetgos} + ${addLetgos}`,
+                totalMeritCents: sql`${usersRegistry.totalMeritCents} + ${addMerit}`,
+                lastActiveAt: new Date(),
+              },
+            });
+
+          // B. 将 oldAnonId 标记为已换机迁出 (MIGRATED)，旧端失效防冲突
+          await db
+            .insert(usersRegistry)
+            .values({
+              anonId: oldAnonId,
+              profileName: oldUser?.profileName || backupProfile.name || "",
+              profileBirth: oldUser?.profileBirth || backupProfile.birth || "",
+              profileGender: oldUser?.profileGender || backupProfile.gender || "",
+              profileCity: oldUser?.profileCity || backupProfile.city || "",
+              firstIp: oldUser?.firstIp || "local",
+              lastIp: oldUser?.lastIp || "local",
+              isBlocked: true,
+              blockedReason: `MIGRATED: 档案已通过云同步码迁移至新设备 [${cleanNewAnon.slice(0, 16)}]`,
+              lastActiveAt: new Date(),
+            })
+            .onConflictDoUpdate({
+              target: usersRegistry.anonId,
+              set: {
+                isBlocked: true,
+                blockedReason: `MIGRATED: 档案已通过云同步码迁移至新设备 [${cleanNewAnon.slice(0, 16)}]`,
+                lastActiveAt: new Date(),
+              },
+            });
+
+          // C. 历史关联业务事件无缝合流至新身份 (Identity Stitching)
+          await db.update(chatLogs).set({ anonId: cleanNewAnon }).where(eq(chatLogs.anonId, oldAnonId));
+          await db.update(orders).set({ anonId: cleanNewAnon }).where(eq(orders.anonId, oldAnonId));
+          await db.update(letgoEvents).set({ anonId: cleanNewAnon }).where(eq(letgoEvents.anonId, oldAnonId));
+          await db.update(usageLog).set({ anonId: cleanNewAnon }).where(eq(usageLog.anonId, oldAnonId));
+        } catch (e) {
+          console.error("[Identity Stitching Error]", e);
+        }
+      }
+
       return { ok: true, payload: b.payload, migratedFrom: b.anonId };
     }
   } catch {
@@ -395,18 +496,52 @@ export async function restoreCloudBackup(rawCode: string, newAnonId: string): Pr
   const mem = memBackups.get(code);
   if (!mem) return { ok: false, error: "未找到该同步码，请检查是否输入有误" };
   if (mem.expiresAt < Date.now()) return { ok: false, error: "该云同步码已过期，请重新从旧设备生成" };
-  if (mem.claimed) return { ok: false, error: "该云同步码已被提取并失效，一份同步码仅可提取一次" };
+  if (mem.claimed) {
+    if (cleanNewAnon && mem.claimedBy === cleanNewAnon) {
+      return { ok: true, payload: mem.payload, migratedFrom: mem.anonId };
+    }
+    return { ok: false, error: "该云同步码已被提取并失效，一份同步码仅可提取一次" };
+  }
 
   mem.claimed = true;
-  mem.claimedBy = newAnonId;
-  retiredAnonIds.add(mem.anonId);
+  mem.claimedBy = cleanNewAnon;
+  if (cleanNewAnon && mem.anonId !== cleanNewAnon) {
+    retiredAnonIds.add(mem.anonId);
+  }
 
   return { ok: true, payload: mem.payload, migratedFrom: mem.anonId };
 }
 
-export function isAnonMigrated(anonId: string): boolean {
+export async function isAnonMigrated(anonId: string): Promise<boolean> {
   if (!anonId) return false;
-  return retiredAnonIds.has(anonId);
+  const clean = anonId.slice(0, 64);
+  if (retiredAnonIds.has(clean)) return true;
+  try {
+    const user = await db
+      .select({ isBlocked: usersRegistry.isBlocked, blockedReason: usersRegistry.blockedReason })
+      .from(usersRegistry)
+      .where(eq(usersRegistry.anonId, clean))
+      .limit(1);
+    if (user.length > 0 && user[0].isBlocked && (user[0].blockedReason || "").startsWith("MIGRATED")) {
+      retiredAnonIds.add(clean);
+      return true;
+    }
+
+    const { cloudBackups } = await import("@/db/schema");
+    const claimedRows = await db
+      .select({ code: cloudBackups.code })
+      .from(cloudBackups)
+      .where(and(eq(cloudBackups.anonId, clean), eq(cloudBackups.claimed, true)))
+      .limit(1);
+    if (claimedRows.length > 0) {
+      retiredAnonIds.add(clean);
+      return true;
+    }
+  } catch {
+    /* 降级内存检查 */
+  }
+  return false;
 }
+
 
 

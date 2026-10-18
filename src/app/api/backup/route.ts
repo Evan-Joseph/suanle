@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   // 3. 检查当前 anonId 是否已在其他设备恢复（注销旧设备）
   if (action === "check-migrated") {
     const anonId = typeof body.anonId === "string" ? body.anonId : "";
-    return Response.json({ ok: true, migrated: isAnonMigrated(anonId) });
+    return Response.json({ ok: true, migrated: await isAnonMigrated(anonId) });
   }
 
   return Response.json({ ok: false, error: "未知操作" }, { status: 400 });
