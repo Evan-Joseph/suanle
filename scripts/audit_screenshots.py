@@ -103,7 +103,7 @@ def run_audit():
         pwd_input = admin_page.locator("input[type='password']").first
         if pwd_input.is_visible():
             print("输入管理员密钥进入后台...")
-            pwd_input.fill("your-admin-password-here")
+            pwd_input.fill(os.environ.get("ADMIN_PASSWORD", ""))
             submit_btn = admin_page.locator("button[type='submit']").first
             submit_btn.click()
             try:

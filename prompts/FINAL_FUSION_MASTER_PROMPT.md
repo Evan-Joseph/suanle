@@ -96,7 +96,7 @@
 ## 六、 大模型与 API 接入技术规范
 
 * **API Base URL**：`https://api.ai-pixel.online/v1`
-* **API Key**：``
+* **API Key**：`sk-your-api-key-here`（请从环境变量 `process.env.LLM_API_KEY` 读取，切勿硬编码）
 * **推荐调用模型**：`gemini-4-argon`
 * **Prompt 人味工程**：
   * 彻底杜绝“作为一个人工智能”、“根据科学研究”等免责八股文。语气自然真诚，带有点破迷津的睿智与抚慰人心的幽默，在点明本质后，总能给出一句让人会心一笑的“算了”箴言。

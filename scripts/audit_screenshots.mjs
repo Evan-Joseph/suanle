@@ -97,7 +97,7 @@ async function runAudit() {
   const pwdInput = adminPage.locator("input[type='password']");
   if (await pwdInput.isVisible()) {
     console.log("输入管理员密钥登录后台...");
-    await pwdInput.fill("your-admin-password-here");
+    await pwdInput.fill(process.env.ADMIN_PASSWORD || "");
     const submitBtn = adminPage.locator("button:has-text('核验通关')");
     await submitBtn.click();
     await adminPage.waitForTimeout(2000);

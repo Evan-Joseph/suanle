@@ -117,7 +117,7 @@
 本项目已为你配置好稳定高效的大模型接口凭据，代码中请直接接入并提供环境变量与设置项支持：
 
 * **API Base URL**：`https://api.ai-pixel.online/v1`
-* **API Key**：``
+* **API Key**：`sk-your-api-key-here`（请从环境变量 `process.env.LLM_API_KEY` 读取，切勿硬编码）
 * **推荐调用模型**：`gemini-4-argon`
 * **提示词人味规范（严禁 AI 腔）**：
   * 系统 Prompt 必须注入通透、幽默、温和的真人语调，坚决杜绝“作为一个人工智能助手”、“我无法预测未来”等死板官话；

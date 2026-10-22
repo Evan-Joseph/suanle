@@ -5,8 +5,8 @@ import { allow, clientIp } from "./store";
 const COOKIE_NAME = "suanle_curator_session";
 const SESSION_TTL_MS = 7 * 24 * 3600 * 1000; // 7 天有效
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "your-admin-password-here";
-const SECRET_KEY = process.env.ADMIN_SECRET || ADMIN_PASSWORD || "suanle_secret_seal_key_2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const SECRET_KEY = process.env.ADMIN_SECRET || ADMIN_PASSWORD || "suanle_local_dev_hmac_key";
 
 async function getHmacKey(): Promise<CryptoKey> {
   const enc = new TextEncoder();
@@ -92,7 +92,7 @@ export function checkLoginRateLimit(req: Request): boolean {
 }
 
 export function verifyPassword(pwd: string): boolean {
-  if (!pwd || typeof pwd !== "string") return false;
+  if (!ADMIN_PASSWORD || !pwd || typeof pwd !== "string") return false;
   return pwd === ADMIN_PASSWORD;
 }
 

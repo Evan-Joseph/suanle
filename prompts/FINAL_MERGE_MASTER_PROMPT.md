@@ -100,7 +100,7 @@
 终极版本代码中需完整接入以下大模型生产配置：
 
 * **API Base URL**：`https://api.ai-pixel.online/v1`
-* **API Key**：``
+* **API Key**：`sk-your-api-key-here`（请从环境变量 `process.env.LLM_API_KEY` 读取，切勿硬编码）
 * **推荐核心模型**：`gemini-4-argon`
 * **工程容错要求**：
   * **流式打字与 Markdown 解析**：严格杜绝裸露的未闭合 Markdown 符号、乱码或代码块文本泄露；

@@ -9,7 +9,7 @@ export type LLMEvent =
   | { type: "usage"; total: number };
 
 const BASE = "https://api.ai-pixel.online/v1";
-const KEY = "";
+const KEY = process.env.LLM_API_KEY || "";
 const MODELS = ["gemini-4-argon", "gemini-3.8-flash", "gemini-2.5-flash"];
 const FAST_MODELS = ["gemini-3.8-flash", "gemini-4-argon", "gemini-2.5-flash"];
 

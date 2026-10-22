@@ -4,7 +4,7 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=suanle
-      - POSTGRES_PASSWORD=suanle_local_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-suanle_local_db}
       - POSTGRES_DB=suanle
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -29,7 +29,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      - DATABASE_URL=postgresql://suanle:suanle_local_db@db:5432/suanle
+      - DATABASE_URL=${DATABASE_URL:-postgresql://suanle:suanle_local_db@db:5432/suanle}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://www.jiji.cc/v1}
       - LLM_BACKUP_BASES=${LLM_BACKUP_BASES:-https://api.jiji.cc/v1,https://api-slb.jiji.cc/v1}
       - LLM_API_KEY=${LLM_API_KEY:-}
@@ -38,7 +38,7 @@ services:
       - LLM_FALLBACK_MODELS=${LLM_FALLBACK_MODELS:-gemini-3.8-flash,gemini-3.7-flash,gemini-2.5-flash}
       - LLM_SECONDARY_BASE_URL=${LLM_SECONDARY_BASE_URL:-https://api.ai-pixel.online/v1}
       - LLM_SECONDARY_API_KEY=${LLM_SECONDARY_API_KEY:-}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-your-admin-password-here}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
     expose:
       - "3000"
 

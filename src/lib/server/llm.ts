@@ -82,11 +82,15 @@ export function resolveEngine(req: Request, tier: EngineTier = "chat"): Engine {
     : [ENV_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_MODEL)];
 
   const defaultProviders: UpstreamProvider[] = [
-    {
-      name: "jiji",
-      bases: [ENV_BASE, ...ENV_BACKUP_BASES.filter((b) => b !== ENV_BASE)],
-      key: ENV_KEY,
-    },
+    ...(ENV_KEY
+      ? [
+          {
+            name: "jiji",
+            bases: [ENV_BASE, ...ENV_BACKUP_BASES.filter((b) => b !== ENV_BASE)],
+            key: ENV_KEY,
+          },
+        ]
+      : []),
     ...(ENV_SEC_KEY
       ? [
           {
