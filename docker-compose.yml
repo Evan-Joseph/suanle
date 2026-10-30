@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     restart: always
     environment:
+      - TZ=Asia/Shanghai
+      - PGTZ=Asia/Shanghai
       - POSTGRES_USER=suanle
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-suanle_local_db}
       - POSTGRES_DB=suanle
@@ -26,6 +28,7 @@ services:
       db:
         condition: service_healthy
     environment:
+      - TZ=Asia/Shanghai
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0

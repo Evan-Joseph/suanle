@@ -202,19 +202,19 @@ export async function getSystemTelemetry(): Promise<SystemTelemetry> {
         `),
         db.execute(sql`
           SELECT 
-            to_char(date_trunc('hour', created_at), 'HH24:00') as hr,
+            to_char(date_trunc('hour', created_at AT TIME ZONE 'Asia/Shanghai'), 'HH24:00') as hr,
             count(*)::int as count
           FROM chat_logs
-          WHERE created_at >= NOW() - INTERVAL '24 hours'
+          WHERE created_at >= date_trunc('hour', NOW() AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' - INTERVAL '23 hours'
           GROUP BY 1
           ORDER BY 1
         `),
         db.execute(sql`
           SELECT 
-            to_char(date_trunc('hour', created_at), 'HH24:00') as hr,
+            to_char(date_trunc('hour', created_at AT TIME ZONE 'Asia/Shanghai'), 'HH24:00') as hr,
             COALESCE(sum(tokens), 0)::int as tokens
           FROM usage_log
-          WHERE created_at >= NOW() - INTERVAL '24 hours'
+          WHERE created_at >= date_trunc('hour', NOW() AT TIME ZONE 'Asia/Shanghai') AT TIME ZONE 'Asia/Shanghai' - INTERVAL '23 hours'
           GROUP BY 1
           ORDER BY 1
         `),

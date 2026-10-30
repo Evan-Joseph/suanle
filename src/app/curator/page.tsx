@@ -108,7 +108,7 @@ function formatDuration(seconds: number): string {
 function formatTime(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString("zh-CN", { hour12: false });
+    return d.toLocaleString("zh-CN", { hour12: false, timeZone: "Asia/Shanghai" });
   } catch {
     return iso;
   }
@@ -205,12 +205,18 @@ function HourlyTrendChart({
     tokens.forEach((t) => tokenMap.set(t.hour, t.count));
 
     const now = new Date();
+    const hourFormatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Shanghai",
+      hour: "2-digit",
+      hour12: false,
+    });
     const slots: { hour: string; label: string; chats: number; tokens: number }[] = [];
 
-    // 从 23 小时前推演至当前小时
+    // 从 23 小时前推演至当前小时（强制对齐东八区 Asia/Shanghai，与后端 PostgreSQL 时区严格一致）
     for (let i = 23; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 3600 * 1000);
-      const hStr = `${String(d.getHours()).padStart(2, "0")}:00`;
+      const rawHr = hourFormatter.format(d).replace(/[^0-9]/g, "").padStart(2, "0");
+      const hStr = `${rawHr === "24" ? "00" : rawHr}:00`;
       slots.push({
         hour: hStr,
         label: hStr,
