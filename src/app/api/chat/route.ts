@@ -1,6 +1,6 @@
 import { resolveEngine, streamChat, type LLMMessage } from "@/lib/server/llm";
 import { buildSystemPrompt, sanitizeProfile, userNow } from "@/lib/server/prompt";
-import { allow, clientIp, clientKey, isAnonMigrated, isUserBlocked, logChat, logUsage } from "@/lib/server/store";
+import { clientIp, guardLlmRequest, isAnonMigrated, isUserBlocked, logChat, logUsage } from "@/lib/server/store";
 import { extractBirth, extractGender, mockReply, type ChatMsg } from "@/lib/mock";
 
 export const runtime = "nodejs";
@@ -9,8 +9,9 @@ export const dynamic = "force-dynamic";
 function clean(messages: unknown): ChatMsg[] {
   if (!Array.isArray(messages)) return [];
   return messages
+    .slice(-30)
     .filter((m): m is ChatMsg => !!m && typeof m === "object" && ((m as ChatMsg).role === "user" || (m as ChatMsg).role === "assistant") && typeof (m as ChatMsg).content === "string")
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 1800) }));
 }
 
 function distillContextSummary(olderMessages: ChatMsg[]): string {
@@ -36,6 +37,10 @@ function distillContextSummary(olderMessages: ChatMsg[]): string {
 const estimate = (t: string) => Math.ceil(t.length * 0.9);
 
 export async function POST(req: Request) {
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > 65536) {
+    return Response.json({ error: "payload too large" }, { status: 413 });
+  }
   let body: Record<string, unknown> = {};
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -63,15 +68,15 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   const userAgent = req.headers.get("user-agent") || "";
 
-  // 滚动上下文窗口：保留最近活跃对话，较早的轮次提炼为脉络摘要，杜绝健忘与超长断档
-  const clientSummary = typeof body.summary === "string" ? body.summary.trim() : "";
+  // 滚动上下文窗口：保留最近活跃对话，较早的轮次提炼为脉络摘要，杜绝健忘与超长断档（严格限制 summary 长度防超大载荷刷 Token）
+  const clientSummary = typeof body.summary === "string" ? body.summary.trim().slice(0, 500) : "";
   let combinedSummary = clientSummary;
   let messages = allMessages;
   if (allMessages.length > 14) {
     const older = allMessages.slice(0, -10);
     messages = allMessages.slice(-10);
     const autoSummary = distillContextSummary(older);
-    combinedSummary = [clientSummary, autoSummary].filter(Boolean).join("；");
+    combinedSummary = [clientSummary, autoSummary].filter(Boolean).join("；").slice(0, 900);
   }
 
   const deep = body.deep === true;
@@ -87,7 +92,7 @@ export async function POST(req: Request) {
     if (g) profile.gender = g;
   }
   const engine = resolveEngine(req, "chat");
-  const limited = !engine.custom && !allow(clientKey(req, anonId), 24, 60_000);
+  const limited = !guardLlmRequest(req, "chat", anonId, engine.custom);
   const system = buildSystemPrompt(profile, { deep, now: userNow(body.tzOffset), summary: combinedSummary || undefined });
   const llmMessages: LLMMessage[] = [{ role: "system", content: system }, ...messages];
   const enc = new TextEncoder();

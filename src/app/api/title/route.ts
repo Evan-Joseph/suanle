@@ -1,5 +1,5 @@
 import { complete, extractJSON, resolveEngine } from "@/lib/server/llm";
-import { allow, clientKey } from "@/lib/server/store";
+import { guardLlmRequest } from "@/lib/server/store";
 import { CATEGORIES, localTitle } from "@/lib/mock";
 
 export const runtime = "nodejs";
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const firstUser = messages.find((m) => m.role === "user")?.content ?? "";
   const fallback = localTitle(firstUser);
   const engine = resolveEngine(req, "title");
-  if (!messages.length || !allow(clientKey(req) + "|title", 20, 60_000)) return Response.json(fallback);
+  if (!messages.length || !guardLlmRequest(req, "title", undefined, engine.custom)) return Response.json(fallback);
 
   const transcript = messages.map((m) => `${m.role === "user" ? "我" : "算了"}：${m.content}`).join("\n");
   const r = await complete(

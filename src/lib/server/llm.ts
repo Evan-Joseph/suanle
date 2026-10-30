@@ -27,25 +27,29 @@ export interface Engine {
 
 export type EngineTier = "chat" | "annual" | "title" | "analogy";
 
-// 主服务商 (jiji.cc 高速服务，包含默认、CF、美西三条容灾链路)
-const ENV_BASE = (process.env.LLM_BASE_URL || "https://www.jiji.cc/v1").replace(/\/+$/, "");
-const ENV_BACKUP_BASES = (process.env.LLM_BACKUP_BASES || "https://api.jiji.cc/v1,https://api-slb.jiji.cc/v1")
-  .split(",")
-  .map((s) => s.trim().replace(/\/+$/, ""))
-  .filter(Boolean);
-const ENV_KEY = process.env.LLM_API_KEY || "";
+/** 运行时动态读取环境变量，防止 Next.js / Webpack 构建阶段将敏感凭据静态内联进产物 */
+function runtimeEnv(key: string, fallback = ""): string {
+  const envMap = process.env as Record<string, string | undefined>;
+  return (envMap[key] || fallback).trim();
+}
 
-// 备用服务商 (ai-pixel.online 异地容灾兜底)
-const ENV_SEC_BASE = (process.env.LLM_SECONDARY_BASE_URL || "https://api.ai-pixel.online/v1").replace(/\/+$/, "");
-const ENV_SEC_KEY = process.env.LLM_SECONDARY_API_KEY || "";
-
-// 模型分档
-const ENV_MODEL = process.env.LLM_MODEL || "gemini-4-argon"; // 旗舰深度推理（聊天、年度盘）
-const ENV_LIGHT_MODEL = process.env.LLM_LIGHT_MODEL || "gemini-3.8-flash"; // 轻量快速（标题提炼、算力类比）
-const ENV_FALLBACKS = (process.env.LLM_FALLBACK_MODELS || "gemini-3.8-flash,gemini-3.7-flash,gemini-2.5-flash")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+function getUpstreamConfig() {
+  const base = runtimeEnv("LLM_BASE_URL", "https://www.jiji.cc/v1").replace(/\/+$/, "");
+  const backupBases = runtimeEnv("LLM_BACKUP_BASES", "https://api.jiji.cc/v1,https://api-slb.jiji.cc/v1")
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+  const key = runtimeEnv("LLM_API_KEY", "");
+  const secBase = runtimeEnv("LLM_SECONDARY_BASE_URL", "https://api.ai-pixel.online/v1").replace(/\/+$/, "");
+  const secKey = runtimeEnv("LLM_SECONDARY_API_KEY", "");
+  const model = runtimeEnv("LLM_MODEL", "gemini-4-argon");
+  const lightModel = runtimeEnv("LLM_LIGHT_MODEL", "gemini-3.8-flash");
+  const fallbacks = runtimeEnv("LLM_FALLBACK_MODELS", "gemini-3.8-flash,gemini-3.7-flash,gemini-2.5-flash")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return { base, backupBases, key, secBase, secKey, model, lightModel, fallbacks };
+}
 
 /** 只允许公网 https 地址，避免被用来探测内网 */
 function safeBase(raw: string): string | null {
@@ -73,30 +77,31 @@ function safeBase(raw: string): string | null {
 }
 
 export function resolveEngine(req: Request, tier: EngineTier = "chat"): Engine {
+  const cfg = getUpstreamConfig();
   const key = req.headers.get("x-engine-key")?.trim();
   const isLight = tier === "title" || tier === "analogy";
 
   // 按任务分档路由模型：轻任务优先使用极速 Flash，核心对话与推演使用旗舰 4-argon
   const tierModels = isLight
-    ? [ENV_LIGHT_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_LIGHT_MODEL), ENV_MODEL]
-    : [ENV_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_MODEL)];
+    ? [cfg.lightModel, ...cfg.fallbacks.filter((m) => m !== cfg.lightModel), cfg.model]
+    : [cfg.model, ...cfg.fallbacks.filter((m) => m !== cfg.model)];
 
   const defaultProviders: UpstreamProvider[] = [
-    ...(ENV_KEY
+    ...(cfg.key
       ? [
           {
             name: "jiji",
-            bases: [ENV_BASE, ...ENV_BACKUP_BASES.filter((b) => b !== ENV_BASE)],
-            key: ENV_KEY,
+            bases: [cfg.base, ...cfg.backupBases.filter((b) => b !== cfg.base)],
+            key: cfg.key,
           },
         ]
       : []),
-    ...(ENV_SEC_KEY
+    ...(cfg.secKey
       ? [
           {
             name: "ai-pixel",
-            bases: [ENV_SEC_BASE],
-            key: ENV_SEC_KEY,
+            bases: [cfg.secBase],
+            key: cfg.secKey,
           },
         ]
       : []),
@@ -104,8 +109,8 @@ export function resolveEngine(req: Request, tier: EngineTier = "chat"): Engine {
 
   if (!key) {
     return {
-      base: ENV_BASE,
-      key: ENV_KEY,
+      base: cfg.base,
+      key: cfg.key,
       providers: defaultProviders,
       models: tierModels,
       custom: false,
@@ -113,17 +118,17 @@ export function resolveEngine(req: Request, tier: EngineTier = "chat"): Engine {
   }
 
   const baseRaw = req.headers.get("x-engine-base");
-  const base = baseRaw ? safeBase(baseRaw) : ENV_BASE;
+  const base = baseRaw ? safeBase(baseRaw) : cfg.base;
   if (!base) {
     return {
-      base: ENV_BASE,
-      key: ENV_KEY,
+      base: cfg.base,
+      key: cfg.key,
       providers: defaultProviders,
       models: tierModels,
       custom: false,
     };
   }
-  const customModel = (req.headers.get("x-engine-model") || "").trim().slice(0, 80) || (isLight ? ENV_LIGHT_MODEL : ENV_MODEL);
+  const customModel = (req.headers.get("x-engine-model") || "").trim().slice(0, 80) || (isLight ? cfg.lightModel : cfg.model);
   return {
     base,
     key: key.slice(0, 400),
@@ -387,9 +392,10 @@ export async function getLLMTelemetry(): Promise<LLMTelemetryInfo> {
     }
   };
 
+  const cfg = getUpstreamConfig();
   const [p1, p2] = await Promise.allSettled([
-    pingEndpoint(ENV_BASE, ENV_KEY),
-    pingEndpoint(ENV_SEC_BASE, ENV_SEC_KEY),
+    pingEndpoint(cfg.base, cfg.key),
+    pingEndpoint(cfg.secBase, cfg.secKey),
   ]);
 
   const p1Res = p1.status === "fulfilled" ? p1.value : { ms: null, status: "error" as const, errorMsg: "timeout" };
@@ -399,18 +405,18 @@ export async function getLLMTelemetry(): Promise<LLMTelemetryInfo> {
     providers: [
       {
         name: "主服务商 (jiji.cc)",
-        base: ENV_BASE,
-        backupBases: ENV_BACKUP_BASES,
-        isConfigured: Boolean(ENV_KEY),
+        base: cfg.base,
+        backupBases: cfg.backupBases,
+        isConfigured: Boolean(cfg.key),
         pingMs: p1Res.ms,
         pingStatus: p1Res.status,
         errorMsg: p1Res.errorMsg,
       },
       {
         name: "备用服务商 (ai-pixel)",
-        base: ENV_SEC_BASE,
+        base: cfg.secBase,
         backupBases: [],
-        isConfigured: Boolean(ENV_SEC_KEY),
+        isConfigured: Boolean(cfg.secKey),
         pingMs: p2Res.ms,
         pingStatus: p2Res.status,
         errorMsg: p2Res.errorMsg,
@@ -418,8 +424,8 @@ export async function getLLMTelemetry(): Promise<LLMTelemetryInfo> {
     ],
     activeCoolings,
     modelTiers: {
-      flagship: [ENV_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_MODEL)],
-      lightweight: [ENV_LIGHT_MODEL, ...ENV_FALLBACKS.filter((m) => m !== ENV_LIGHT_MODEL), ENV_MODEL],
+      flagship: [cfg.model, ...cfg.fallbacks.filter((m) => m !== cfg.model)],
+      lightweight: [cfg.lightModel, ...cfg.fallbacks.filter((m) => m !== cfg.lightModel), cfg.model],
     },
   };
 }

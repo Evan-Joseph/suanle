@@ -1,5 +1,5 @@
 import { complete, extractJSON, resolveEngine } from "@/lib/server/llm";
-import { allow, clientKey } from "@/lib/server/store";
+import { guardLlmRequest } from "@/lib/server/store";
 import { localAnalogy, thingText } from "@/lib/meter";
 
 export const runtime = "nodejs";
@@ -24,10 +24,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "bad request" }, { status: 400 });
   }
   const fallback = { items: localAnalogy(tokens, hint, 3, Math.floor(tokens / 1000)), line: LOCAL_LINES[Math.floor(tokens / 1000) % LOCAL_LINES.length] };
-  if (tokens <= 0 || !allow(clientKey(req) + "|analogy", 6, 60_000)) return Response.json(fallback);
+  const engine = resolveEngine(req, "analogy");
+  if (tokens <= 0 || !guardLlmRequest(req, "analogy", undefined, engine.custom)) return Response.json(fallback);
 
   const r = await complete(
-    resolveEngine(req, "analogy"),
+    engine,
     [
       {
         role: "system",

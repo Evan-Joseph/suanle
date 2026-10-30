@@ -13,7 +13,7 @@ COPY public /app/public
 COPY .next/standalone /app
 COPY .next/static /app/.next/static
 
-RUN chown -R nextjs:nodejs /app
+RUN rm -f /app/.env* && chown -R nextjs:nodejs /app
 
 USER nextjs
 

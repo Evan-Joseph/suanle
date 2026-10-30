@@ -5,14 +5,24 @@ import { allow, clientIp } from "./store";
 const COOKIE_NAME = "suanle_curator_session";
 const SESSION_TTL_MS = 7 * 24 * 3600 * 1000; // 7 天有效
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
-const SECRET_KEY = process.env.ADMIN_SECRET || ADMIN_PASSWORD || "suanle_local_dev_hmac_key";
+function runtimeEnv(key: string, fallback = ""): string {
+  const envMap = process.env as Record<string, string | undefined>;
+  return (envMap[key] || fallback).trim();
+}
+
+function getAdminPassword(): string {
+  return runtimeEnv("ADMIN_PASSWORD", "");
+}
+
+function getSecretKey(): string {
+  return runtimeEnv("ADMIN_SECRET", "") || getAdminPassword() || "suanle_local_dev_hmac_key";
+}
 
 async function getHmacKey(): Promise<CryptoKey> {
   const enc = new TextEncoder();
   return crypto.subtle.importKey(
     "raw",
-    enc.encode(SECRET_KEY),
+    enc.encode(getSecretKey()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"]
@@ -92,8 +102,9 @@ export function checkLoginRateLimit(req: Request): boolean {
 }
 
 export function verifyPassword(pwd: string): boolean {
-  if (!ADMIN_PASSWORD || !pwd || typeof pwd !== "string") return false;
-  return pwd === ADMIN_PASSWORD;
+  const adminPwd = getAdminPassword();
+  if (!adminPwd || !pwd || typeof pwd !== "string") return false;
+  return pwd === adminPwd;
 }
 
 export { COOKIE_NAME };

@@ -1,6 +1,6 @@
 import { complete, extractJSON, resolveEngine } from "@/lib/server/llm";
 import { chartContext, sanitizeProfile } from "@/lib/server/prompt";
-import { allow, clientKey, logUsage } from "@/lib/server/store";
+import { guardLlmRequest, isAnonMigrated, isUserBlocked, logUsage } from "@/lib/server/store";
 import { localAnnual, sanitizeAnnual } from "@/lib/annual";
 import { parseBirth } from "@/lib/divination";
 
@@ -19,11 +19,16 @@ export async function POST(req: Request) {
   const anonId = typeof body.anonId === "string" ? body.anonId : "";
   if (!profile.birth || !parseBirth(profile.birth)) return Response.json({ error: "need birth" }, { status: 400 });
 
+  if (anonId && ((await isAnonMigrated(anonId)) || (await isUserBlocked(anonId)))) {
+    return Response.json({ error: "机缘暂歇，请少憩再叙。" }, { status: 403 });
+  }
+
   const base = localAnnual(profile.birth, year);
-  if (!allow(clientKey(req, anonId) + "|annual", 4, 60_000)) return Response.json({ report: base, source: "local" });
+  const engine = resolveEngine(req, "annual");
+  if (!guardLlmRequest(req, "annual", anonId, engine.custom)) return Response.json({ report: base, source: "local" });
 
   const r = await complete(
-    resolveEngine(req, "annual"),
+    engine,
     [
       {
         role: "system",

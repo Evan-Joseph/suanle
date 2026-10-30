@@ -6,7 +6,18 @@ import { chatLogs, letgoEvents, orders, usageLog, usersRegistry } from "@/db/sch
 /** 所有写库操作都不应影响用户体验：失败就安静地算了 */
 
 export function clientIp(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "local";
+  // 优先读取受信任反向代理（Caddy）覆写的 X-Real-IP；若回退读取 X-Forwarded-For，则取最右侧（最后一级代理追加）IP，彻底防止客户端伪造头部绕过限流
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp.slice(0, 64);
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1].slice(0, 64);
+  }
+  return "local";
 }
 
 export function clientKey(req: Request, anonId?: string): string {
@@ -299,6 +310,53 @@ export function allow(key: string, limit: number, windowMs: number): boolean {
   arr.push(now);
   hits.set(key, arr);
   if (hits.size > 5000) hits.clear();
+  return true;
+}
+
+const BOT_UA_RE = /opencode\/|python-requests|python-httpx|go-http-client|scrapy|masscan|zgrab|libwww-perl|nikto|sqlmap/i;
+const ALLOWED_ORIGIN_RE = /^https?:\/\/((www\.)?suanle\.cc|localhost(:\d+)?|127\.0\.0\.1(:\d+)?)$/i;
+
+/**
+ * 统一防盗刷与多维限流守卫：
+ * 1. 拦截自动化盗刷脚本特征 UA（如 opencode/、python-requests 等）与非法跨域 Origin；
+ * 2. 强制按真实 IP 独立限流（分钟级 + 小时级），彻底封堵轮换 anonId 或伪造 X-Forwarded-For 绕过；
+ * 3. 全局熔断阈值兜底，极端分布式洪峰下平滑退回本地古法引擎，保护上游 API 余额。
+ */
+export function guardLlmRequest(
+  req: Request,
+  tier: "chat" | "annual" | "title" | "analogy",
+  anonId?: string,
+  isCustomKey = false
+): boolean {
+  if (isCustomKey) return true;
+
+  const ua = (req.headers.get("user-agent") || "").trim();
+  if (!ua || BOT_UA_RE.test(ua)) return false;
+
+  const origin = (req.headers.get("origin") || "").trim();
+  if (origin && !ALLOWED_ORIGIN_RE.test(origin)) return false;
+
+  const ip = clientIp(req);
+  const cleanAnon = (anonId ?? "").trim().slice(0, 32);
+
+  const limits: Record<typeof tier, { ipMin: number; ipHour: number; anonMin: number; globalMin: number }> = {
+    chat: { ipMin: 8, ipHour: 72, anonMin: 6, globalMin: 60 },
+    annual: { ipMin: 3, ipHour: 18, anonMin: 3, globalMin: 30 },
+    title: { ipMin: 12, ipHour: 90, anonMin: 10, globalMin: 80 },
+    analogy: { ipMin: 6, ipHour: 45, anonMin: 5, globalMin: 50 },
+  };
+  const cfg = limits[tier];
+
+  // 1. 真实 IP 分钟级与小时级双重硬限流（不依赖 anonId，无法通过更换 ID 绕过）
+  if (!allow(`ip_min|${tier}|${ip}`, cfg.ipMin, 60_000)) return false;
+  if (!allow(`ip_hr|${tier}|${ip}`, cfg.ipHour, 3_600_000)) return false;
+
+  // 2. 单设备 anonId 限流
+  if (cleanAnon && !allow(`anon_min|${tier}|${cleanAnon}`, cfg.anonMin, 60_000)) return false;
+
+  // 3. 全局总闸门防分布式盗刷熔断
+  if (!allow(`global_min|${tier}`, cfg.globalMin, 60_000)) return false;
+
   return true;
 }
 

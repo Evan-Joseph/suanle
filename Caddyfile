@@ -34,6 +34,7 @@ www.suanle.cc {
     handle {
         reverse_proxy app:3000 {
             flush_interval -1
+            header_up X-Real-IP {remote_host}
         }
     }
 }
