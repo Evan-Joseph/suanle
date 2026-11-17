@@ -274,9 +274,11 @@ function AnnualPanel() {
         body: JSON.stringify({ profile: { name: profile.name, birth, gender: profile.gender }, year, anonId }),
         signal: AbortSignal.timeout(70000),
       });
-      const j = (await res.json()) as { report?: AnnualReport; tokens?: number };
-      if (j.report) r = j.report;
-      if (j.tokens) useApp.getState().addUsage(j.tokens);
+      if (res.ok) {
+        const j = (await res.json()) as { report?: AnnualReport; tokens?: number };
+        if (j.report) r = j.report;
+        if (j.tokens) useApp.getState().addUsage(j.tokens);
+      }
     } catch {
       /* 用本地推演 */
     }

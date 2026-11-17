@@ -17,6 +17,11 @@ interface Channel {
   image: string;
 }
 
+const DEFAULT_CHANNELS: Channel[] = [
+  { id: "wechat", label: "微信", url: "https://payapp.wechatpay.cn/sjt/qr/AQGjGzMYLop8zZDYSTRFCAL2", image: "/pay/wechat.png" },
+  { id: "alipay", label: "支付宝", url: "https://qr.alipay.com/2m615723l8cwi3pxfjjdmeb", image: "/pay/alipay.png" },
+];
+
 let channelCache: Channel[] | null = null;
 
 function useChannels(): Channel[] | null {
@@ -25,13 +30,14 @@ function useChannels(): Channel[] | null {
     if (channelCache) return;
     let alive = true;
     fetch("/api/orders")
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : { channels: DEFAULT_CHANNELS }))
       .then((j: { channels?: Channel[] }) => {
-        channelCache = j.channels ?? [];
+        channelCache = j.channels?.length ? j.channels : DEFAULT_CHANNELS;
         if (alive) setList(channelCache);
       })
       .catch(() => {
-        if (alive) setList([]);
+        channelCache = DEFAULT_CHANNELS;
+        if (alive) setList(DEFAULT_CHANNELS);
       });
     return () => {
       alive = false;

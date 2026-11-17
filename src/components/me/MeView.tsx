@@ -40,7 +40,7 @@ function Ledger() {
     if (!stale) return;
     let alive = true;
     fetch("/api/analogy", { method: "POST", headers: { "Content-Type": "application/json", ...engineHeaders() }, body: JSON.stringify({ tokens: useApp.getState().usage.total, hint }) })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : {}))
       .then((j: { items?: { emoji: string; text: string }[]; line?: string }) => {
         if (alive && j.items?.length) useApp.getState().setAnalogy({ items: j.items, line: j.line ?? "" });
       })

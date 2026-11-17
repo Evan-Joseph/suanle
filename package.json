@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && rm -f .next/standalone/.env*",
+    "build:pages": "node scripts/build_cf_pages.mjs",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"

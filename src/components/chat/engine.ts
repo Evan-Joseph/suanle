@@ -179,15 +179,17 @@ async function runAssistant(sid: string, deep: boolean) {
     }
   } catch {
     if (!ctl.signal.aborted && !content && !reasoning) {
-      // 网络断了也不让人落空：本地接住
       local = true;
-      const text = mockReply(history, profile, { deep });
-      for (const c of text.match(/[\s\S]{1,4}/g) ?? []) {
-        if (ctl.signal.aborted) break;
-        content += c;
-        schedule();
-        await sleep(14);
-      }
+    }
+  }
+  if (local && !ctl.signal.aborted && !content && !reasoning) {
+    // 静态/离线或无上游引擎时自动切到本地古法排盘与温和推演，不让用户落空
+    const text = mockReply(history, profile, { deep });
+    for (const c of text.match(/[\s\S]{1,4}/g) ?? []) {
+      if (ctl.signal.aborted) break;
+      content += c;
+      schedule();
+      await sleep(14);
     }
   }
   if (raf) cancelAnimationFrame(raf);
@@ -220,8 +222,10 @@ async function maybeTitle(sid: string) {
   const firstUser = msgs.find((m) => m.role === "user")?.content ?? "";
   try {
     const r = await fetch("/api/title", { method: "POST", headers: { "Content-Type": "application/json", ...engineHeaders() }, body: JSON.stringify({ messages: payload }) });
+    if (!r.ok) throw new Error("skip");
     const j = (await r.json()) as { title?: string; category?: string };
     if (j.title) useApp.getState().patchSession(sid, { title: j.title, category: j.category ?? "日常" });
+    else useApp.getState().patchSession(sid, localTitle(firstUser));
   } catch {
     useApp.getState().patchSession(sid, localTitle(firstUser));
   }

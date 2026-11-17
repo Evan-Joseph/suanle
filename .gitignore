@@ -17,12 +17,18 @@ build/
 dist/
 .turbo/
 .cache/
+.wrangler/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Temporary files
+# Temporary files & Local Archives
 *.tmp
 *.bak
 *.tsbuildinfo
+docs/
+works/downloads_archives/
+promo/*.mp4
+backups/
+*.dump
