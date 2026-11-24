@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check } from "lucide-react";
 import { profileHint, useApp, useUI } from "@/lib/store";
 import { fmt, LAMP_PLANS, localAnalogy, TIP_TIERS, yuan } from "@/lib/meter";
@@ -53,27 +53,35 @@ interface ClientEnv {
   isMobile: boolean;
 }
 
+const EMPTY_CLIENT_ENV: ClientEnv = {
+  inWeChat: false,
+  inAlipay: false,
+  inMiniProgram: false,
+  isMobile: false,
+};
+
+let cachedClientEnv: ClientEnv | null = null;
+
+function subscribeClientEnv() {
+  return () => {};
+}
+
+function getClientEnvSnapshot(): ClientEnv {
+  if (typeof window === "undefined") return EMPTY_CLIENT_ENV;
+  if (cachedClientEnv) return cachedClientEnv;
+  const ua = navigator.userAgent.toLowerCase();
+  const inWeChat = /micromessenger/.test(ua);
+  const inAlipay = /alipayclient/.test(ua);
+  const inMiniProgram =
+    /miniprogram/.test(ua) ||
+    (window as unknown as { __wxjs_environment?: string }).__wxjs_environment === "miniprogram";
+  const isMobile = /mobile|android|iphone|ipad|phone/i.test(ua);
+  cachedClientEnv = { inWeChat, inAlipay, inMiniProgram, isMobile };
+  return cachedClientEnv;
+}
+
 function useClientEnv(): ClientEnv {
-  const [env, setEnv] = useState<ClientEnv>({
-    inWeChat: false,
-    inAlipay: false,
-    inMiniProgram: false,
-    isMobile: false,
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const ua = navigator.userAgent.toLowerCase();
-    const inWeChat = /micromessenger/.test(ua);
-    const inAlipay = /alipayclient/.test(ua);
-    const inMiniProgram =
-      /miniprogram/.test(ua) ||
-      (window as unknown as { __wxjs_environment?: string }).__wxjs_environment === "miniprogram";
-    const isMobile = /mobile|android|iphone|ipad|phone/i.test(ua);
-    setEnv({ inWeChat, inAlipay, inMiniProgram, isMobile });
-  }, []);
-
-  return env;
+  return useSyncExternalStore(subscribeClientEnv, getClientEnvSnapshot, () => EMPTY_CLIENT_ENV);
 }
 
 /** 扫码随喜 / 点灯的共用流程 */
@@ -103,6 +111,7 @@ function PayStep({ cents, label, kind, tier, onPaid, onBack }: { cents: number; 
       <div className="mt-5 flex flex-col items-center">
         {/* 原生真实二维码：确保移动端微信和浏览器可 100% 长按识别与保存 */}
         <div className="relative flex h-[216px] w-[216px] items-center justify-center overflow-hidden rounded-[24px] bg-white p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={ch}
             src={ch === "wechat" ? "/pay/wechat.png" : "/pay/alipay.png"}

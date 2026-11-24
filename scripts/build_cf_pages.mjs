@@ -83,6 +83,12 @@ function main() {
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/pay/*
+  Cache-Control: public, max-age=604800
 `;
   fs.writeFileSync(path.join(outDir, "_headers"), headersContent, "utf8");
   scanSecrets(outDir);

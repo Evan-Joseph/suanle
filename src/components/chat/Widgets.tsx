@@ -116,6 +116,7 @@ function WidgetInner({ data, k, interactive }: { data: { widget?: string; questi
   const result = useApp((s) => s.widgetResults[k]);
   const birth = useApp((s) => s.profile.birth);
   const gender = useApp((s) => s.profile.gender);
+  const city = useApp((s) => s.profile.city);
   const question = data.question?.trim() || undefined;
 
   if (data.widget === "coins") {
@@ -153,7 +154,6 @@ function WidgetInner({ data, k, interactive }: { data: { widget?: string; questi
   }
 
   if (data.widget === "bazi") {
-    const city = useApp((s) => s.profile.city);
     const b = computeBazi(birth, gender, city);
     return (
       <Frame title="八字命盘" hint={birth ?? "填一下生辰"}>

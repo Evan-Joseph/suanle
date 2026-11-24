@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -488,7 +488,7 @@ export default function CuratorPage() {
   }, []);
 
   // 加载遥测数据
-  const loadTelemetry = async () => {
+  const loadTelemetry = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/telemetry");
       if (res.ok) {
@@ -510,10 +510,10 @@ export default function CuratorPage() {
     } catch {
       /* 静默 */
     }
-  };
+  }, []);
 
   // 加载对话列表 (带 IP 归属地)
-  const loadChats = async (page = 1, q = chatSearch, model = chatModelFilter) => {
+  const loadChats = useCallback(async (page = 1, q = chatSearch, model = chatModelFilter) => {
     try {
       const p = new URLSearchParams({ page: String(page), limit: "15" });
       if (q) p.set("q", q);
@@ -526,10 +526,10 @@ export default function CuratorPage() {
     } catch {
       /* 静默 */
     }
-  };
+  }, [chatSearch, chatModelFilter]);
 
   // 加载纸篓列表 (带 IP 归属地)
-  const loadLetgos = async (page = 1, q = letgoSearch) => {
+  const loadLetgos = useCallback(async (page = 1, q = letgoSearch) => {
     try {
       const p = new URLSearchParams({ page: String(page), limit: "16" });
       if (q) p.set("q", q);
@@ -541,10 +541,10 @@ export default function CuratorPage() {
     } catch {
       /* 静默 */
     }
-  };
+  }, [letgoSearch]);
 
   // 加载缘友列表 (带 IP 归属地)
-  const loadUsers = async (page = 1, q = userSearch) => {
+  const loadUsers = useCallback(async (page = 1, q = userSearch) => {
     try {
       const p = new URLSearchParams({ page: String(page), limit: "15" });
       if (q) p.set("q", q);
@@ -556,10 +556,10 @@ export default function CuratorPage() {
     } catch {
       /* 静默 */
     }
-  };
+  }, [userSearch]);
 
   // 刷新当前活动数据
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     setRefreshing(true);
     await Promise.allSettled([
       loadTelemetry(),
@@ -568,12 +568,19 @@ export default function CuratorPage() {
       activeTab === "users" ? loadUsers(users.page) : Promise.resolve(),
     ]);
     setRefreshing(false);
-  };
+  }, [activeTab, chats.page, letgos.page, users.page, loadTelemetry, loadChats, loadLetgos, loadUsers]);
 
   useEffect(() => {
     if (!authenticated) return;
-    void refreshAll();
-  }, [authenticated, activeTab]);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) void refreshAll();
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [authenticated, activeTab, refreshAll]);
 
   // 自动轮询遥测
   useEffect(() => {
@@ -582,7 +589,7 @@ export default function CuratorPage() {
       void loadTelemetry();
     }, 12000);
     return () => clearInterval(interval);
-  }, [authenticated, autoRefresh]);
+  }, [authenticated, autoRefresh, loadTelemetry]);
 
   // 登录提交
   const handleLogin = async (e: React.FormEvent) => {
